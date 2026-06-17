@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Sonner toast — always show the X close button (default is hover-only) */
+[data-sonner-toast] [data-close-button] {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+@layer base {
+  :root {
+    /* Light theme — brand: deep wine + champagne gold */
+    --background: 36 33% 97%;          /* warm cream */
+    --foreground: 350 28% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 350 28% 10%;
+    --primary: 343 70% 26%;            /* deep wine #8B1538 */
+    --primary-foreground: 36 33% 97%;
+    --secondary: 350 14% 92%;
+    --secondary-foreground: 350 28% 10%;
+    --accent: 38 38% 60%;              /* champagne gold #C9A96E */
+    --accent-foreground: 350 28% 10%;
+    --muted: 36 18% 92%;
+    --muted-foreground: 350 12% 35%;
+    --destructive: 0 84% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 36 18% 86%;
+    --input: 36 18% 86%;
+    --ring: 343 70% 26%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 350 18% 8%;
+    --foreground: 36 33% 95%;
+    --card: 350 18% 11%;
+    --card-foreground: 36 33% 95%;
+    --primary: 38 38% 60%;
+    --primary-foreground: 350 28% 10%;
+    --secondary: 350 12% 18%;
+    --secondary-foreground: 36 33% 95%;
+    --accent: 343 50% 35%;
+    --accent-foreground: 36 33% 95%;
+    --muted: 350 12% 16%;
+    --muted-foreground: 36 18% 70%;
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 350 12% 20%;
+    --input: 350 12% 20%;
+    --ring: 38 38% 60%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
