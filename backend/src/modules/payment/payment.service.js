@@ -85,6 +85,26 @@ export const paymentService = {
     if (!p) throw ApiError.notFound('Payment not found');
 
     const previousStatus = p.status;
+
+    // State-machine guard: only allow valid forward transitions. Without this,
+    // refunded/failed/cancelled payments can be flipped back to 'completed',
+    // which silently rewrites the order's paidAmount/refundedAmount.
+    const ALLOWED_PAYMENT_TRANSITIONS = {
+      pending: ['completed', 'failed', 'cancelled'],
+      completed: ['refunded'],
+      failed: ['pending', 'completed'],
+      cancelled: [],
+      refunded: [],
+    };
+    if (status !== previousStatus) {
+      const allowed = ALLOWED_PAYMENT_TRANSITIONS[previousStatus] || [];
+      if (!allowed.includes(status)) {
+        throw ApiError.badRequest(
+          `Cannot change payment status from '${previousStatus}' to '${status}'. Allowed: ${allowed.join(', ') || 'none'}`
+        );
+      }
+    }
+
     p.status = status;
     if (transactionId) p.transactionId = transactionId;
     if (gatewayResponse) p.gatewayResponse = gatewayResponse;

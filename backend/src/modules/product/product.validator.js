@@ -4,13 +4,7 @@ import { PRODUCT_STATUS } from './product.model.js';
 const objectId = z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid id');
 
 const imageSchema = z.object({
-  url: z
-    .string()
-    .min(1)
-    .refine(
-      (v) => /^(https?:\/\/|data:image\/|\/uploads\/)/.test(v),
-      'Image URL must be an http(s) URL, data URI, or /uploads/ path'
-    ),
+  url: z.string().url(),
   publicId: z.string().optional(),
   alt: z.string().max(200).optional(),
   isPrimary: z.boolean().optional(),

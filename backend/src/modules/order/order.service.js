@@ -7,6 +7,7 @@ import { customerService } from '../customer/customer.service.js';
 import { stockMovementService } from '../stock/stock-movement.service.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { formatSequence } from '../../utils/counter.js';
+import { escapeRegex } from '../../utils/escapeRegex.js';
 
 // ===== Stock helpers =====
 
@@ -29,8 +30,11 @@ const releaseReservation = async (items) => {
   }
 };
 
-// Actually deduct stock: find rack entries with sufficient quantity and decrement
-const deductStockForItems = async (items, userId, orderRef, orderNumber) => {
+// Actually deduct stock: find rack entries with sufficient quantity and decrement.
+// wasReserved indicates this order previously incremented reservedQuantity (online orders).
+// Only such orders should release reservation here; physical/never-reserved orders must not
+// touch reservedQuantity (doing so silently consumes OTHER orders' reservations).
+const deductStockForItems = async (items, userId, orderRef, orderNumber, wasReserved = false) => {
   // Pre-flight: ensure every item has enough stock before we start mutating anything.
   // Without this, a partial deduction can succeed and the failure leaves inconsistent state.
   for (const item of items) {
@@ -89,7 +93,9 @@ const deductStockForItems = async (items, userId, orderRef, orderNumber) => {
       { $group: { _id: null, total: { $sum: '$quantity' } } },
     ]);
     stockItemDoc.totalQuantity = agg[0]?.total || 0;
-    stockItemDoc.reservedQuantity = Math.max(0, stockItemDoc.reservedQuantity - item.quantity);
+    if (wasReserved) {
+      stockItemDoc.reservedQuantity = Math.max(0, stockItemDoc.reservedQuantity - item.quantity);
+    }
     stockItemDoc.totalSold = (stockItemDoc.totalSold || 0) + item.quantity;
     await stockItemDoc.save();
   }
@@ -289,6 +295,15 @@ export const orderService = {
       });
     }
 
+    // Empty the customer's cart now that the order is placed. Best-effort: a
+    // cart-clear failure must never fail an order that is already saved.
+    try {
+      const { cartService } = await import('../cart/cart.service.js');
+      await cartService.clear(userId);
+    } catch (e) {
+      console.error(`Cart clear after order ${orderNumber} failed:`, e.message);
+    }
+
     return order;
   },
 
@@ -325,8 +340,8 @@ export const orderService = {
     computeTotals(order);
     await order.save();
 
-    // Physical orders deduct stock immediately
-    await deductStockForItems(items, staffUserId, order._id, order.orderNumber);
+    // Physical orders deduct stock immediately and never held a reservation
+    await deductStockForItems(items, staffUserId, order._id, order.orderNumber, false);
     order.stockFulfilled = true;
     order.deliveredAt = new Date();
     await order.save();
@@ -360,7 +375,7 @@ export const orderService = {
       if (from) filter.orderedAt.$gte = from;
       if (to) filter.orderedAt.$lte = to;
     }
-    if (search) filter.orderNumber = new RegExp(search, 'i');
+    if (search) filter.orderNumber = new RegExp(escapeRegex(search), 'i');
 
     const [items, total] = await Promise.all([
       Order.find(filter)
@@ -409,7 +424,8 @@ export const orderService = {
 
     // Side effects
     if (newStatus === 'shipped' && !order.stockFulfilled) {
-      await deductStockForItems(order.items, userId, order._id, order.orderNumber);
+      await deductStockForItems(order.items, userId, order._id, order.orderNumber, order.stockReserved);
+      order.stockReserved = false;
       order.stockFulfilled = true;
       order.shippedAt = new Date();
     }
@@ -417,7 +433,8 @@ export const orderService = {
       order.deliveredAt = new Date();
       // Walk-in & online: ensure stock was deducted by 'shipped'; for online orders going pending→delivered (rare), do it
       if (!order.stockFulfilled) {
-        await deductStockForItems(order.items, userId, order._id, order.orderNumber);
+        await deductStockForItems(order.items, userId, order._id, order.orderNumber, order.stockReserved);
+        order.stockReserved = false;
         order.stockFulfilled = true;
       }
       // Update customer stats
@@ -434,6 +451,10 @@ export const orderService = {
       order.returnedAt = new Date();
       order.returnedBy = userId;
       order.returnReason = notes;
+      // Returning an order does not by itself refund payments, but recompute
+      // paymentStatus/refundedAmount from payment records so the order's
+      // financial state is consistent once refunds are recorded.
+      await orderService.refreshPaymentStatus(order._id);
     }
 
     order.status = newStatus;

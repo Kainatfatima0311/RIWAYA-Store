@@ -12,6 +12,8 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatPrice } from '@/lib/format';
+import { apiErrorMessage } from '@/lib/apiError';
+import { Reveal } from '@/components/ui/Reveal';
 
 export default function Wishlist() {
   const { data, isLoading } = useGetWishlistQuery();
@@ -56,7 +58,7 @@ export default function Wishlist() {
       await addToCart({ product: detail._id, variantId: firstVariant._id, quantity: 1 }).unwrap();
       toast.success('Added to cart');
     } catch (err) {
-      toast.error(err?.data?.message || 'Could not move to cart');
+      toast.error(apiErrorMessage(err, 'Could not move to cart'));
     }
   };
 
@@ -67,32 +69,36 @@ export default function Wishlist() {
 
   return (
     <div className="container py-8">
-      <div className="flex items-end justify-between mb-6">
+      <Reveal animation="fade-up" className="flex items-end justify-between mb-6">
         <h1 className="font-serif text-3xl md:text-4xl">Your wishlist</h1>
-        <button onClick={handleClear} className="text-sm text-muted-foreground hover:text-destructive">Clear all</button>
-      </div>
+        <button onClick={handleClear} className="text-sm text-muted-foreground hover:text-destructive transition-colors">Clear all</button>
+      </Reveal>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {items.map((item) => {
+        {items.map((item, i) => {
           const p = item.product;
           if (!p) return null;
           const img = p.images?.[0]?.url;
           const onSale = p.salePrice > 0 && p.salePrice < p.basePrice;
           return (
-            <Card key={item._id} className="overflow-hidden">
+            <Card
+              key={item._id}
+              style={{ animationDelay: `${Math.min(i * 60, 400)}ms` }}
+              className="overflow-hidden animate-fade-up hover-lift group"
+            >
               <Link to={`/products/${p.slug}`}>
-                <div className="aspect-[3/4] bg-muted">
-                  {img && <img src={img} alt={p.name} className="w-full h-full object-cover" />}
+                <div className="aspect-[3/4] bg-muted overflow-hidden">
+                  {img && <img src={img} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />}
                 </div>
               </Link>
               <CardContent className="p-3">
-                <Link to={`/products/${p.slug}`} className="font-medium text-sm line-clamp-2 hover:text-primary">{p.name}</Link>
+                <Link to={`/products/${p.slug}`} className="font-medium text-sm line-clamp-2 hover:text-primary transition-colors">{p.name}</Link>
                 <div className="mt-1 font-semibold text-sm">{formatPrice(onSale ? p.salePrice : p.basePrice)}</div>
                 <div className="mt-3 flex gap-2">
-                  <Button size="sm" className="flex-1" onClick={() => handleMoveToCart(p)}>
-                    <ShoppingBag className="h-3.5 w-3.5 mr-1" /> Add
+                  <Button size="sm" className="flex-1 group/add" onClick={() => handleMoveToCart(p)}>
+                    <ShoppingBag className="h-3.5 w-3.5 mr-1 transition-transform duration-200 group-hover/add:-translate-y-0.5" /> Add
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => handleRemove(item._id)}>
+                  <Button size="sm" variant="outline" onClick={() => handleRemove(item._id)} aria-label="Remove from wishlist">
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>

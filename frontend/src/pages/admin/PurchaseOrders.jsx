@@ -20,6 +20,7 @@ import { Input, Select, Textarea } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Badge } from '@/components/ui/Badge';
 import { formatPrice, formatDate } from '@/lib/format';
+import { apiErrorMessage } from '@/lib/apiError';
 
 const STATUSES = ['draft', 'placed', 'partially_received', 'fully_received', 'cancelled'];
 
@@ -49,8 +50,8 @@ export default function PurchaseOrders() {
       key: 'actions', label: '', className: 'text-right',
       render: (r) => (
         <div className="flex items-center justify-end gap-1">
-          <button onClick={() => navigate(`/admin/purchase-orders/${r._id}`)} className="p-1.5 hover:bg-accent/30 rounded"><Eye className="h-4 w-4" /></button>
-          {r.status === 'draft' && <button onClick={() => setConfirmId(r._id)} className="p-1.5 hover:bg-destructive/10 text-destructive rounded"><Trash2 className="h-4 w-4" /></button>}
+          <button aria-label="View purchase order" onClick={() => navigate(`/admin/purchase-orders/${r._id}`)} className="p-1.5 hover:bg-accent/30 rounded transition-colors"><Eye className="h-4 w-4" /></button>
+          {r.status === 'draft' && <button aria-label="Delete purchase order" onClick={() => setConfirmId(r._id)} className="p-1.5 hover:bg-destructive/10 text-destructive rounded transition-colors"><Trash2 className="h-4 w-4" /></button>}
         </div>
       ),
     },
@@ -58,8 +59,10 @@ export default function PurchaseOrders() {
 
   return (
     <div>
-      <PageHeader title="Purchase Orders" description="Orders to mills with partial receiving and payment tracking"
-        actions={<Button onClick={() => setModalOpen(true)}><Plus className="h-4 w-4 mr-1" /> New PO</Button>} />
+      <div className="animate-fade-up">
+        <PageHeader title="Purchase Orders" description="Orders to mills with partial receiving and payment tracking"
+          actions={<Button onClick={() => setModalOpen(true)}><Plus className="h-4 w-4 mr-1" /> New PO</Button>} />
+      </div>
 
       <FilterBar search={filters.search} onSearch={(v) => { setFilters({ ...filters, search: v }); setPage(1); }} placeholder="Search PO number">
         <FilterField label="Status">
@@ -73,10 +76,10 @@ export default function PurchaseOrders() {
       <DataTable columns={columns} data={data?.data || []} loading={isLoading} pagination={data?.pagination} onPageChange={setPage} onRowClick={(r) => navigate(`/admin/purchase-orders/${r._id}`)} />
 
       <POFormModal open={modalOpen} onClose={() => setModalOpen(false)} suppliers={suppliers?.data || []} warehouses={warehouses?.data || []}
-        onSubmit={async (values) => { try { const res = await create(values).unwrap(); toast.success('PO drafted'); setModalOpen(false); navigate(`/admin/purchase-orders/${res.data._id}`); } catch (err) { toast.error(err?.data?.message || 'Failed'); } }} loading={creating} />
+        onSubmit={async (values) => { try { const res = await create(values).unwrap(); toast.success('PO drafted'); setModalOpen(false); navigate(`/admin/purchase-orders/${res.data._id}`); } catch (err) { toast.error(apiErrorMessage(err, 'Failed')); } }} loading={creating} />
 
       <ConfirmDialog open={!!confirmId} onClose={() => setConfirmId(null)} title="Delete PO?" description="Only draft POs can be deleted."
-        onConfirm={async () => { try { await remove(confirmId).unwrap(); toast.success('Deleted'); setConfirmId(null); } catch (err) { toast.error(err?.data?.message || 'Failed'); } }} loading={deleting} />
+        onConfirm={async () => { try { await remove(confirmId).unwrap(); toast.success('Deleted'); setConfirmId(null); } catch (err) { toast.error(apiErrorMessage(err, 'Failed')); } }} loading={deleting} />
     </div>
   );
 }
@@ -102,22 +105,22 @@ function POFormModal({ open, onClose, suppliers, warehouses, onSubmit, loading }
         notes: v.notes,
         items: [{ name: v.itemName, quantityOrdered: Number(v.itemQty), unitPrice: Number(v.itemPrice), unit: v.itemUnit }],
       }))} loading={loading}>Create draft</Button></>}>
-      <form className="grid grid-cols-2 gap-3">
+      <form className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div><Label required>Supplier</Label><Select {...register('supplier', { required: true })}><option value="">Choose…</option>{suppliers.map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}</Select></div>
         <div><Label required>Warehouse</Label><Select {...register('warehouse', { required: true })}><option value="">Choose…</option>{warehouses.map((w) => <option key={w._id} value={w._id}>{w.name}</option>)}</Select></div>
-        <div className="col-span-2"><Label>Expected delivery</Label><Input type="date" {...register('expectedDeliveryDate')} /></div>
+        <div className="sm:col-span-2"><Label>Expected delivery</Label><Input type="date" {...register('expectedDeliveryDate')} /></div>
 
-        <div className="col-span-2 mt-2"><div className="text-sm font-medium mb-1">First item</div></div>
-        <div className="col-span-2"><Label required>Item name</Label><Input {...register('itemName', { required: true })} placeholder="Embroidered Bridal Suit" /></div>
+        <div className="sm:col-span-2 mt-2"><div className="text-sm font-medium mb-1">First item</div></div>
+        <div className="sm:col-span-2"><Label required>Item name</Label><Input {...register('itemName', { required: true })} placeholder="Embroidered Bridal Suit" /></div>
         <div><Label>Quantity</Label><Input type="number" {...register('itemQty')} /></div>
         <div><Label>Unit price (Rs)</Label><Input type="number" {...register('itemPrice')} /></div>
         <div><Label>Unit</Label><Select {...register('itemUnit')}>{['pcs','mtr','kg','dozens','suits'].map((u) => <option key={u} value={u}>{u}</option>)}</Select></div>
 
-        <div className="col-span-2 mt-2"><div className="text-sm font-medium mb-1">Charges</div></div>
+        <div className="sm:col-span-2 mt-2"><div className="text-sm font-medium mb-1">Charges</div></div>
         <div><Label>Tax rate (%)</Label><Input type="number" {...register('taxRate')} /></div>
         <div><Label>Shipping cost (Rs)</Label><Input type="number" {...register('shippingCost')} /></div>
         <div><Label>Discount (Rs)</Label><Input type="number" {...register('discount')} /></div>
-        <div className="col-span-2"><Label>Notes</Label><Textarea rows={2} {...register('notes')} /></div>
+        <div className="sm:col-span-2"><Label>Notes</Label><Textarea rows={2} {...register('notes')} /></div>
       </form>
     </Modal>
   );

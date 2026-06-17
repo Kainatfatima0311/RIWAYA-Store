@@ -1,6 +1,7 @@
 import { Customer } from './customer.model.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { formatSequenceNoYear } from '../../utils/counter.js';
+import { escapeRegex } from '../../utils/escapeRegex.js';
 
 const generateCode = () => formatSequenceNoYear('customer', 'CUST', 5);
 
@@ -64,15 +65,15 @@ export const customerService = {
     if (customerType) filter.customerType = customerType;
     if (segment) filter.segment = segment;
     if (isActive !== undefined) filter.isActive = isActive === 'true';
-    if (city) filter['addresses.city'] = new RegExp(city, 'i');
+    if (city) filter['addresses.city'] = new RegExp(escapeRegex(city), 'i');
     if (minSpent != null) filter.totalSpent = { $gte: minSpent };
     if (search) {
       filter.$or = [
-        { name: new RegExp(search, 'i') },
-        { email: new RegExp(search, 'i') },
-        { phone: new RegExp(search, 'i') },
-        { customerCode: new RegExp(search, 'i') },
-        { cnic: new RegExp(search, 'i') },
+        { name: new RegExp(escapeRegex(search), 'i') },
+        { email: new RegExp(escapeRegex(search), 'i') },
+        { phone: new RegExp(escapeRegex(search), 'i') },
+        { customerCode: new RegExp(escapeRegex(search), 'i') },
+        { cnic: new RegExp(escapeRegex(search), 'i') },
       ];
     }
 
@@ -193,18 +194,26 @@ export const customerService = {
 
   // ===== Internal: called by order service on order completion =====
   async recordOrder(customerId, orderTotal) {
-    const c = await Customer.findById(customerId);
+    // Atomic increments to avoid lost updates under concurrent orders.
+    const c = await Customer.findByIdAndUpdate(
+      customerId,
+      {
+        $inc: { totalOrders: 1, totalSpent: orderTotal },
+        $set: { lastOrderAt: new Date() },
+      },
+      { new: true }
+    );
     if (!c) return;
-    c.totalOrders += 1;
-    c.totalSpent = +(c.totalSpent + orderTotal).toFixed(2);
-    c.averageOrderValue = +(c.totalSpent / c.totalOrders).toFixed(2);
-    c.lastOrderAt = new Date();
 
-    // Auto-segment
-    if (c.totalSpent >= 100000) c.segment = 'vip';
-    else if (c.totalOrders >= 2) c.segment = 'returning';
+    // Derived fields recomputed from the post-increment consistent values.
+    const totalSpent = +c.totalSpent.toFixed(2);
+    const derived = {
+      totalSpent,
+      averageOrderValue: +(totalSpent / c.totalOrders).toFixed(2),
+    };
+    if (totalSpent >= 100000) derived.segment = 'vip';
+    else if (c.totalOrders >= 2) derived.segment = 'returning';
 
-    await c.save();
-    return c;
+    return Customer.findByIdAndUpdate(customerId, { $set: derived }, { new: true });
   },
 };

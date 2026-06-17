@@ -1,6 +1,7 @@
 import { EquipmentCategory } from './equipment-category.model.js';
 import { Equipment } from './equipment.model.js';
 import { ApiError } from '../../utils/ApiError.js';
+import { escapeRegex } from '../../utils/escapeRegex.js';
 
 export const equipmentCategoryService = {
   async create(payload, userId) {
@@ -12,7 +13,7 @@ export const equipmentCategoryService = {
   async list({ isActive, search, sort = 'name' }) {
     const filter = {};
     if (isActive !== undefined) filter.isActive = isActive === 'true';
-    if (search) filter.name = new RegExp(search, 'i');
+    if (search) filter.name = new RegExp(escapeRegex(search), 'i');
     return EquipmentCategory.find(filter).sort(sort);
   },
 
@@ -23,12 +24,10 @@ export const equipmentCategoryService = {
   },
 
   async update(id, payload, userId) {
-    const cat = await EquipmentCategory.findByIdAndUpdate(
-      id,
-      { ...payload, updatedBy: userId },
-      { new: true, runValidators: true }
-    );
+    const cat = await EquipmentCategory.findById(id);
     if (!cat) throw ApiError.notFound('Equipment category not found');
+    Object.assign(cat, { ...payload, updatedBy: userId });
+    await cat.save();
     return cat;
   },
 

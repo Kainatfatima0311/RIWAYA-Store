@@ -25,9 +25,9 @@ export function Modal({ open, onClose, title, description, children, size = 'md'
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
       <div
-        className={cn('bg-card rounded-lg shadow-xl w-full max-h-[90vh] flex flex-col overflow-hidden', sizes[size])}
+        className={cn('bg-card rounded-lg shadow-2xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-scale-in', sizes[size])}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between p-5 border-b">
@@ -35,7 +35,7 @@ export function Modal({ open, onClose, title, description, children, size = 'md'
             {title && <h2 className="text-lg font-semibold">{title}</h2>}
             {description && <p className="text-sm text-muted-foreground mt-1">{description}</p>}
           </div>
-          <button onClick={onClose} className="p-1 -mr-1 rounded hover:bg-accent/30">
+          <button onClick={onClose} aria-label="Close" className="p-1 -mr-1 rounded hover:bg-accent/30 text-muted-foreground hover:text-foreground transition-colors active:scale-90 hover:rotate-90 duration-200">
             <X className="h-5 w-5" />
           </button>
         </div>

@@ -4,6 +4,7 @@ import { ApiError } from '../../utils/ApiError.js';
 import { formatSequenceNoYear } from '../../utils/counter.js';
 import { stockEntryService } from './stock-entry.service.js';
 import { stockMovementService } from './stock-movement.service.js';
+import { escapeRegex } from '../../utils/escapeRegex.js';
 
 export const stockItemService = {
   async create(payload, userId) {
@@ -37,9 +38,9 @@ export const stockItemService = {
     if (isActive !== undefined) filter.isActive = isActive === 'true';
     if (search) {
       filter.$or = [
-        { name: new RegExp(search, 'i') },
-        { sku: new RegExp(search, 'i') },
-        { barcode: new RegExp(search, 'i') },
+        { name: new RegExp(escapeRegex(search), 'i') },
+        { sku: new RegExp(escapeRegex(search), 'i') },
+        { barcode: new RegExp(escapeRegex(search), 'i') },
       ];
     }
 

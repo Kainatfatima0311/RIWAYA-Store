@@ -9,10 +9,14 @@ import rateLimit from 'express-rate-limit';
 import { env } from './config/env.js';
 import apiRouter from './routes/index.js';
 import { notFound, errorHandler } from './middleware/error.middleware.js';
-import { UPLOADS_LOCAL_DIR } from './middleware/upload.middleware.js';
 
 export const createApp = () => {
   const app = express();
+
+  // Behind Vercel's proxy — trust the first hop so secure cookies, req.ip and
+  // express-rate-limit (which reads X-Forwarded-For) behave correctly. Using a
+  // numeric hop count (not `true`) avoids rate-limit's permissive-proxy error.
+  app.set('trust proxy', 1);
 
   // Security — helmet with crossOriginResourcePolicy adjusted so storefront/admin can load uploaded images
   app.use(
@@ -22,10 +26,22 @@ export const createApp = () => {
   );
   app.use(mongoSanitize());
 
-  // CORS
+  // CORS — accept one or more comma-separated origins from CLIENT_URL, and
+  // ignore trailing slashes so a stray "/" in the env var can't silently break
+  // CORS (a common deploy footgun). Requests with no Origin header (curl,
+  // health checks, server-to-server) are allowed through.
+  const allowedOrigins = (env.clientUrl || '')
+    .split(',')
+    .map((o) => o.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
   app.use(
     cors({
-      origin: env.clientUrl,
+      origin(origin, cb) {
+        if (!origin || allowedOrigins.includes(origin.replace(/\/+$/, ''))) {
+          return cb(null, true);
+        }
+        return cb(null, false);
+      },
       credentials: true,
     })
   );
@@ -56,9 +72,6 @@ export const createApp = () => {
       docs: '/api/health',
     });
   });
-
-  // Serve uploaded files (publicly readable)
-  app.use('/uploads', express.static(UPLOADS_LOCAL_DIR, { maxAge: '7d' }));
 
   // API routes
   app.use('/api', apiRouter);

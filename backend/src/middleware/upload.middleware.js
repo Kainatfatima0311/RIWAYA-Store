@@ -1,33 +1,85 @@
 import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
-import crypto from 'crypto';
+import { v2 as cloudinary } from 'cloudinary';
+import { env } from '../config/env.js';
 import { ApiError } from '../utils/ApiError.js';
 
-const UPLOADS_DIR = path.resolve(process.cwd(), 'uploads');
-
-// Ensure uploads directory exists
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    // Sub-folder by category if provided (e.g. /uploads/products, /uploads/equipment)
-    const sub = req.params.category || req.query.category || 'general';
-    const safeSub = sub.toString().replace(/[^a-z0-9-]/gi, '');
-    const dir = path.join(UPLOADS_DIR, safeSub);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const id = crypto.randomBytes(8).toString('hex');
-    cb(null, `${Date.now()}-${id}${ext}`);
-  },
+cloudinary.config({
+  cloud_name: env.cloudinary.cloudName,
+  api_key: env.cloudinary.apiKey,
+  api_secret: env.cloudinary.apiSecret,
 });
 
-const fileFilter = (req, file, cb) => {
+// Upload to Cloudinary after Multer validates files in memory.
+const storage = multer.memoryStorage();
+
+const getUploadFolder = (req) => {
+  const sub = (req.params.category || req.query.category || 'general')
+    .toString()
+    .replace(/[^a-z0-9-]/gi, '');
+  return `riwaya/${sub || 'general'}`;
+};
+
+const uploadBufferToCloudinary = (file, folder) =>
+  new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder,
+        resource_type: 'image',
+        allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        if (!result?.secure_url || !result.public_id) {
+          reject(ApiError.internal('Cloudinary upload failed'));
+          return;
+        }
+        resolve(result);
+      }
+    );
+
+    stream.end(file.buffer);
+  });
+
+const attachCloudinaryFile = async (file, folder) => {
+  const result = await uploadBufferToCloudinary(file, folder);
+  delete file.buffer;
+
+  return {
+    ...file,
+    path: result.secure_url,
+    filename: result.public_id,
+    size: result.bytes ?? file.size,
+    cloudinary: result,
+  };
+};
+
+const uploadSingleToCloudinary = async (req, _res, next) => {
+  try {
+    if (req.file) {
+      req.file = await attachCloudinaryFile(req.file, getUploadFolder(req));
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
+const uploadMultipleToCloudinary = async (req, _res, next) => {
+  try {
+    if (Array.isArray(req.files) && req.files.length) {
+      const folder = getUploadFolder(req);
+      req.files = await Promise.all(req.files.map((file) => attachCloudinaryFile(file, folder)));
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
+const fileFilter = (_req, file, cb) => {
   const allowed = /^image\/(jpeg|jpg|png|webp|gif)$/i;
   if (!allowed.test(file.mimetype)) {
     cb(new ApiError(400, 'Only JPG, PNG, WEBP and GIF images allowed'));
@@ -45,11 +97,11 @@ export const upload = multer({
   },
 });
 
-// Single image
-export const uploadSingleImage = upload.single('image');
+// Single image.
+export const uploadSingleImage = [upload.single('image'), uploadSingleToCloudinary];
 
-// Multiple images (e.g. for product gallery)
-export const uploadMultipleImages = upload.array('images', 10);
+// Multiple images, for example a product gallery.
+export const uploadMultipleImages = [upload.array('images', 10), uploadMultipleToCloudinary];
 
-export const UPLOADS_PUBLIC_PATH = '/uploads';
-export const UPLOADS_LOCAL_DIR = UPLOADS_DIR;
+// Re-exported so the upload routes can delete assets by public_id.
+export { cloudinary };

@@ -4,6 +4,7 @@ import { Warehouse } from '../warehouse/warehouse.model.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { formatSequence } from '../../utils/counter.js';
 import { supplierService } from '../supplier/supplier.service.js';
+import { escapeRegex } from '../../utils/escapeRegex.js';
 
 // ===== Internal helpers =====
 
@@ -91,7 +92,7 @@ export const purchaseOrderService = {
       if (from) filter.orderDate.$gte = from;
       if (to) filter.orderDate.$lte = to;
     }
-    if (search) filter.poNumber = new RegExp(search, 'i');
+    if (search) filter.poNumber = new RegExp(escapeRegex(search), 'i');
 
     const [items, total] = await Promise.all([
       PurchaseOrder.find(filter)

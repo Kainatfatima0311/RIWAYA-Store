@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,6 +15,7 @@ import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Label, FormError } from '@/components/ui/Label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { isStaff as isStaffRole } from '@/lib/constants';
+import { apiErrorMessage } from '@/lib/apiError';
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -27,6 +29,7 @@ export default function Login() {
   const isAuth = useAppSelector(selectIsAuthenticated);
   const isStaff = useAppSelector(selectIsStaff);
   const [login, { isLoading }] = useLoginMutation();
+  const [shake, setShake] = useState(0); // bump to retrigger the error-nudge animation
   const { register, handleSubmit, formState: { errors } } = useForm({ resolver: zodResolver(schema) });
 
   // If already logged in, send to the right place based on role
@@ -57,14 +60,16 @@ export default function Login() {
       navigate(dest, { replace: true });
     } catch (err) {
       console.error('[Login] Error:', err);
-      toast.error(err?.data?.message || 'Login failed');
+      toast.error(apiErrorMessage(err, 'Login failed'));
+      setShake((n) => n + 1); // nudge the card to signal the failed attempt
     }
   };
 
   return (
     <div className="min-h-[70vh] container flex items-center justify-center py-10">
-      <Card className="w-full max-w-md">
+      <Card key={shake} className={`w-full max-w-md ${shake ? 'animate-shake' : 'animate-scale-in'}`}>
         <CardHeader>
+          <div className="font-serif text-2xl text-primary text-center animate-fade-down">RIWAYA</div>
           <CardTitle>Welcome back</CardTitle>
           <CardDescription>Sign in to your RIWAYA account</CardDescription>
         </CardHeader>
@@ -82,7 +87,7 @@ export default function Login() {
             </div>
             <Button type="submit" loading={isLoading} className="w-full">Sign in</Button>
             <p className="text-sm text-center text-muted-foreground">
-              No account? <Link to="/register" className="text-primary font-medium">Create one</Link>
+              No account? <Link to="/register" className="text-primary font-medium transition-colors hover:text-primary-hover">Create one</Link>
             </p>
           </form>
         </CardContent>

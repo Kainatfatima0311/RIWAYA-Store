@@ -1,5 +1,6 @@
 import { ProductCategory } from './product-category.model.js';
 import { ApiError } from '../../utils/ApiError.js';
+import { escapeRegex } from '../../utils/escapeRegex.js';
 
 // Helper: rebuild path + depth from parent
 const computePathAndDepth = async (parentId) => {
@@ -45,7 +46,7 @@ export const productCategoryService = {
     if (displayOnFrontend !== undefined) filter.displayOnFrontend = displayOnFrontend === 'true';
     if (isActive !== undefined) filter.isActive = isActive === 'true';
     if (isFeatured !== undefined) filter.isFeatured = isFeatured === 'true';
-    if (search) filter.name = new RegExp(search, 'i');
+    if (search) filter.name = new RegExp(escapeRegex(search), 'i');
 
     return ProductCategory.find(filter).populate('parent', 'name slug').sort(sort);
   },
@@ -104,15 +105,28 @@ export const productCategoryService = {
       if (payload.parent && String(payload.parent) === String(id)) {
         throw ApiError.badRequest('A category cannot be its own parent');
       }
+      if (payload.parent) {
+        const newParent = await ProductCategory.findById(payload.parent);
+        if (!newParent) throw ApiError.notFound('Parent category not found');
+        const subtreePrefix = `${existing.path}${existing.slug}/`;
+        if (
+          String(newParent._id) === String(id) ||
+          newParent.path === subtreePrefix ||
+          newParent.path.startsWith(subtreePrefix)
+        ) {
+          throw ApiError.badRequest('A category cannot be moved under one of its own descendants');
+        }
+      }
       const { path, depth } = await computePathAndDepth(payload.parent || null);
       payload.path = path;
       payload.depth = depth;
     }
 
+    const slugBefore = existing.slug;
     Object.assign(existing, { ...payload, updatedBy: userId });
     await existing.save();
 
-    if (parentChanged) {
+    if (parentChanged || existing.slug !== slugBefore) {
       await refreshDescendantPaths(id);
     }
 

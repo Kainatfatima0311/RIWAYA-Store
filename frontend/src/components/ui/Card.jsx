@@ -1,7 +1,16 @@
 import { cn } from '@/lib/utils';
 
-export const Card = ({ className, ...props }) => (
-  <div className={cn('rounded-lg border bg-card text-card-foreground shadow-sm', className)} {...props} />
+// `interactive` opts a card into the lift + gold-border + press affordance
+// (use for clickable cards/tiles). Base cards still animate their shadow.
+export const Card = ({ className, interactive = false, ...props }) => (
+  <div
+    className={cn(
+      'rounded-lg border bg-card text-card-foreground shadow-sm transition-shadow duration-300',
+      interactive && 'card-interactive',
+      className
+    )}
+    {...props}
+  />
 );
 
 export const CardHeader = ({ className, ...props }) => (

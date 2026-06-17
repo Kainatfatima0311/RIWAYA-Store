@@ -3,6 +3,7 @@ import { ProductCategory } from '../product-category/product-category.model.js';
 import { StockItem } from '../stock/stock-item.model.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { productCategoryService } from '../product-category/product-category.service.js';
+import { escapeRegex } from '../../utils/escapeRegex.js';
 
 const validateCategoriesAndVariants = async ({ categories, variants }) => {
   if (categories?.length) {
@@ -53,9 +54,9 @@ export const productService = {
     }
     if (search) {
       filter.$or = [
-        { name: new RegExp(search, 'i') },
-        { sku: new RegExp(search, 'i') },
-        { brand: new RegExp(search, 'i') },
+        { name: new RegExp(escapeRegex(search), 'i') },
+        { sku: new RegExp(escapeRegex(search), 'i') },
+        { brand: new RegExp(escapeRegex(search), 'i') },
       ];
     }
 
@@ -84,7 +85,7 @@ export const productService = {
   async getBySlug(slug, { incrementView = false } = {}) {
     const product = await Product.findOne({ slug })
       .populate('categories', 'name slug path')
-      .populate('variants.stockItem', 'name sku totalQuantity availableQuantity stockStatus');
+      .populate('variants.stockItem', 'name sku totalQuantity reservedQuantity availableQuantity stockStatus');
     if (!product) throw ApiError.notFound('Product not found');
     if (incrementView) {
       Product.findByIdAndUpdate(product._id, { $inc: { viewCount: 1 } }).exec().catch(() => {});
@@ -157,9 +158,9 @@ export const productService = {
     }
     if (search) {
       filter.$or = [
-        { name: new RegExp(search, 'i') },
-        { tags: new RegExp(search, 'i') },
-        { brand: new RegExp(search, 'i') },
+        { name: new RegExp(escapeRegex(search), 'i') },
+        { tags: new RegExp(escapeRegex(search), 'i') },
+        { brand: new RegExp(escapeRegex(search), 'i') },
       ];
     }
 
@@ -181,7 +182,9 @@ export const productService = {
 
   async listFeaturedStorefront(limit = 8) {
     return Product.find({ status: 'published', displayOnFrontend: true, isFeatured: true })
-      .select('name slug shortDescription basePrice salePrice currency images averageRating')
+      .select('name slug shortDescription basePrice salePrice currency images averageRating brand categories variants')
+      .populate('categories', 'name slug')
+      .populate('variants.stockItem', 'name sku totalQuantity reservedQuantity')
       .sort('-publishedAt')
       .limit(limit);
   },

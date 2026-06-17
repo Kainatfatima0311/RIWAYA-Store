@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { ArrowLeft, CreditCard, Truck, Wallet } from 'lucide-react';
+import { ArrowLeft, CreditCard, Truck, Wallet, Copy } from 'lucide-react';
 import { useGetCartQuery } from '@/api/cartApi';
 import { usePlaceOrderMutation } from '@/api/orderApi';
 import { useMyCustomerProfileQuery } from '@/api/peopleApi';
@@ -12,10 +12,13 @@ import { Button } from '@/components/ui/Button';
 import { Input, Select } from '@/components/ui/Input';
 import { Label, FormError } from '@/components/ui/Label';
 import { Card, CardContent } from '@/components/ui/Card';
+import { Reveal } from '@/components/ui/Reveal';
+import { CountUp } from '@/components/ui/CountUp';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatPrice } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { apiErrorMessage } from '@/lib/apiError';
 
 const schema = z.object({
   fullName: z.string().min(2, 'Required'),
@@ -30,6 +33,34 @@ const schema = z.object({
 });
 
 const SHIPPING_FEES = { standard: 250, express: 500 };
+
+// RIWAYA's receiving accounts — shown when a customer picks a transfer method so
+// they know where to send the money. Update these with the store's real accounts.
+const PAYMENT_ACCOUNTS = {
+  bank_transfer: {
+    label: 'Send your bank transfer to:',
+    rows: [
+      { k: 'Bank', v: 'Meezan Bank' },
+      { k: 'Account title', v: 'RIWAYA Clothing' },
+      { k: 'Account number', v: '0123456789012' },
+      { k: 'IBAN', v: 'PK00MEZN0000123456789012' },
+    ],
+  },
+  jazzcash: {
+    label: 'Send your JazzCash payment to:',
+    rows: [
+      { k: 'Account title', v: 'RIWAYA Clothing' },
+      { k: 'JazzCash number', v: '0300 1234567' },
+    ],
+  },
+  easypaisa: {
+    label: 'Send your EasyPaisa payment to:',
+    rows: [
+      { k: 'Account title', v: 'RIWAYA Clothing' },
+      { k: 'EasyPaisa number', v: '0345 1234567' },
+    ],
+  },
+};
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -74,6 +105,14 @@ export default function Checkout() {
   const subtotal = cart.subtotal;
   const shippingFee = subtotal >= 5000 ? 0 : SHIPPING_FEES[watch('shippingMethod') || 'standard'];
   const grandTotal = subtotal + shippingFee;
+  const account = PAYMENT_ACCOUNTS[paymentMethod];
+
+  const copyText = async (text) => {
+    try {
+      await navigator.clipboard?.writeText(text);
+      toast.success('Copied to clipboard');
+    } catch { /* clipboard unavailable */ }
+  };
 
   const onSubmit = async (values) => {
     if (!items.length) {
@@ -121,20 +160,21 @@ export default function Checkout() {
       toast.success(`Order ${orderNumber} placed! Payment is pending verification.`);
       navigate(`/track/${orderNumber}`, { state: { justPlaced: true } });
     } catch (err) {
-      toast.error(err?.data?.message || 'Could not place order');
+      toast.error(apiErrorMessage(err, 'Could not place order'));
     }
   };
 
   return (
     <div className="container py-8">
-      <Link to="/cart" className="text-sm text-muted-foreground hover:text-primary inline-flex items-center gap-1 mb-6">
+      <Link to="/cart" className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1 mb-6 animate-fade-up">
         <ArrowLeft className="h-4 w-4" /> Back to cart
       </Link>
-      <h1 className="font-serif text-3xl md:text-4xl mb-6">Checkout</h1>
+      <h1 className="font-serif text-3xl md:text-4xl mb-6 animate-fade-up">Checkout</h1>
 
       <form onSubmit={handleSubmit(onSubmit)} className="grid lg:grid-cols-[1fr_380px] gap-8">
         <div className="space-y-6">
           {/* Shipping address */}
+          <Reveal animation="fade-up">
           <Card>
             <CardContent className="pt-6">
               <h2 className="font-semibold text-lg mb-4">Shipping address</h2>
@@ -179,8 +219,10 @@ export default function Checkout() {
               </div>
             </CardContent>
           </Card>
+          </Reveal>
 
           {/* Shipping method */}
+          <Reveal animation="fade-up" delay={60}>
           <Card>
             <CardContent className="pt-6">
               <h2 className="font-semibold text-lg mb-4">Shipping method</h2>
@@ -189,7 +231,7 @@ export default function Checkout() {
                   { val: 'standard', label: 'Standard (3-5 days)', fee: SHIPPING_FEES.standard },
                   { val: 'express', label: 'Express (1-2 days)', fee: SHIPPING_FEES.express },
                 ].map((opt) => (
-                  <label key={opt.val} className={cn('flex items-center justify-between border rounded-md p-3 cursor-pointer hover:border-primary', watch('shippingMethod') === opt.val && 'border-primary bg-primary/5')}>
+                  <label key={opt.val} className={cn('flex items-center justify-between border rounded-md p-3 cursor-pointer hover:border-primary transition-colors press', watch('shippingMethod') === opt.val && 'border-primary bg-primary/5')}>
                     <div className="flex items-center gap-3">
                       <input type="radio" value={opt.val} {...register('shippingMethod')} />
                       <Truck className="h-4 w-4 text-muted-foreground" />
@@ -201,8 +243,10 @@ export default function Checkout() {
               </div>
             </CardContent>
           </Card>
+          </Reveal>
 
           {/* Payment method */}
+          <Reveal animation="fade-up" delay={120}>
           <Card>
             <CardContent className="pt-6">
               <h2 className="font-semibold text-lg mb-4">Payment method</h2>
@@ -213,7 +257,7 @@ export default function Checkout() {
                   { val: 'jazzcash', label: 'JazzCash', icon: Wallet, note: 'Send to our JazzCash and share TX ID.' },
                   { val: 'easypaisa', label: 'EasyPaisa', icon: Wallet, note: 'Send to our EasyPaisa and share TX ID.' },
                 ].map((opt) => (
-                  <label key={opt.val} className={cn('flex items-start gap-3 border rounded-md p-3 cursor-pointer hover:border-primary', paymentMethod === opt.val && 'border-primary bg-primary/5')}>
+                  <label key={opt.val} className={cn('flex items-start gap-3 border rounded-md p-3 cursor-pointer hover:border-primary transition-colors press', paymentMethod === opt.val && 'border-primary bg-primary/5')}>
                     <input type="radio" name="paymentMethod" value={opt.val} checked={paymentMethod === opt.val} onChange={(e) => setPaymentMethod(e.target.value)} className="mt-1" />
                     <opt.icon className="h-5 w-5 text-muted-foreground" />
                     <div className="flex-1">
@@ -223,6 +267,35 @@ export default function Checkout() {
                   </label>
                 ))}
               </div>
+
+              {/* RIWAYA receiving account — shown for the selected transfer method */}
+              {account && (
+                <div key={paymentMethod} className="mt-4 rounded-md border border-primary/40 bg-primary/5 p-4 animate-fade-down">
+                  <div className="text-sm font-semibold mb-2">{account.label}</div>
+                  <dl className="space-y-1.5">
+                    {account.rows.map((r) => (
+                      <div key={r.k} className="flex items-center justify-between gap-3 text-sm">
+                        <dt className="text-muted-foreground shrink-0">{r.k}</dt>
+                        <dd className="flex items-center gap-2 font-medium font-mono text-right">
+                          <span className="break-all">{r.v}</span>
+                          <button
+                            type="button"
+                            onClick={() => copyText(r.v)}
+                            className="text-primary hover:text-primary-hover shrink-0 transition-transform active:scale-[0.85]"
+                            aria-label={`Copy ${r.k}`}
+                            title="Copy"
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </button>
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    After sending the payment, enter your Transaction ID below so our team can verify it.
+                  </p>
+                </div>
+              )}
 
               {/* Transaction reference for non-COD methods */}
               {paymentMethod !== 'cod' && (
@@ -255,18 +328,21 @@ export default function Checkout() {
               </div>
             </CardContent>
           </Card>
+          </Reveal>
 
           {/* Notes */}
+          <Reveal animation="fade-up" delay={180}>
           <Card>
             <CardContent className="pt-6">
               <Label htmlFor="customerNotes">Order notes (optional)</Label>
               <textarea id="customerNotes" {...register('customerNotes')} rows={2} className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="e.g. Please call before delivery" />
             </CardContent>
           </Card>
+          </Reveal>
         </div>
 
         {/* Order summary */}
-        <aside>
+        <Reveal as="aside" animation="fade-up" delay={120}>
           <Card className="sticky top-20">
             <CardContent className="pt-6 space-y-3">
               <h2 className="font-semibold text-lg">Order summary</h2>
@@ -291,13 +367,13 @@ export default function Checkout() {
               <div className="border-t pt-3 space-y-1 text-sm">
                 <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(subtotal)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Shipping</span><span>{shippingFee === 0 ? 'Free' : formatPrice(shippingFee)}</span></div>
-                <div className="flex justify-between font-semibold pt-2 border-t text-base"><span>Total</span><span className="text-primary">{formatPrice(grandTotal)}</span></div>
+                <div className="flex justify-between font-semibold pt-2 border-t text-base"><span>Total</span><span className="text-primary"><CountUp value={grandTotal} format={formatPrice} /></span></div>
               </div>
               <Button type="submit" loading={placing} className="w-full">Place order</Button>
               <p className="text-xs text-muted-foreground text-center">By placing this order, you agree to RIWAYA's terms of service.</p>
             </CardContent>
           </Card>
-        </aside>
+        </Reveal>
       </form>
     </div>
   );

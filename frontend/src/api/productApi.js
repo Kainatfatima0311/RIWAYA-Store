@@ -4,7 +4,9 @@ export const productApi = baseApi.injectEndpoints({
   endpoints: (b) => ({
     // ===== Storefront (public) =====
     storefrontCategories: b.query({
-      query: () => '/storefront/categories',
+      // onlyFrontend=true so the admin "Show on storefront" toggle actually
+      // controls what appears in "Shop by Category" on the home page.
+      query: () => ({ url: '/storefront/categories', params: { onlyFrontend: true } }),
       providesTags: ['ProductCategory'],
     }),
     storefrontCategoryBySlug: b.query({

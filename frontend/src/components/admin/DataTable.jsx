@@ -1,7 +1,20 @@
 import { ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Spinner } from '@/components/ui/Spinner';
 import { cn } from '@/lib/utils';
+
+// Shimmer placeholder rows shown while data loads — feels faster than a spinner
+// and reserves layout space (no CLS).
+function SkeletonRows({ columns, rows = 6 }) {
+  return Array.from({ length: rows }).map((_, r) => (
+    <tr key={`sk-${r}`} className="border-b last:border-0">
+      {columns.map((col) => (
+        <td key={col.key} className="px-4 py-3">
+          <div className="skeleton h-3.5 rounded" style={{ width: `${55 + ((r + col.key.length) % 4) * 10}%` }} />
+        </td>
+      ))}
+    </tr>
+  ));
+}
 
 export function DataTable({
   columns,
@@ -14,7 +27,7 @@ export function DataTable({
   onPageChange,
 }) {
   return (
-    <div className="border rounded-lg bg-card overflow-hidden">
+    <div className="border rounded-lg bg-card overflow-hidden animate-fade-up-sm">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-muted/50 border-b">
@@ -32,23 +45,23 @@ export function DataTable({
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={columns.length} className="py-16 text-center">
-                  <Spinner />
-                </td>
-              </tr>
+              <SkeletonRows columns={columns} />
             ) : data.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="py-16 text-center text-muted-foreground">
+                <td colSpan={columns.length} className="py-16 text-center text-muted-foreground animate-fade-in">
                   {empty}
                 </td>
               </tr>
             ) : (
-              data.map((row) => (
+              data.map((row, i) => (
                 <tr
                   key={rowKey(row)}
                   onClick={() => onRowClick?.(row)}
-                  className={cn('border-b last:border-0 hover:bg-muted/30', onRowClick && 'cursor-pointer')}
+                  style={{ animationDelay: `${Math.min(i * 35, 420)}ms` }}
+                  className={cn(
+                    'border-b last:border-0 transition-colors animate-fade-in hover:bg-muted/40',
+                    onRowClick && 'cursor-pointer active:bg-muted/60'
+                  )}
                 >
                   {columns.map((col) => (
                     <td key={col.key} className={cn('px-4 py-3 align-middle', col.className)}>

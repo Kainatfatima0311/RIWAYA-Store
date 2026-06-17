@@ -42,7 +42,9 @@ export default function StockMovements() {
 
   return (
     <div>
-      <PageHeader title="Stock Movements" description="Full audit log of every inventory change" />
+      <div className="animate-fade-up">
+        <PageHeader title="Stock Movements" description="Full audit log of every inventory change" />
+      </div>
 
       <FilterBar>
         <FilterField label="Movement type">

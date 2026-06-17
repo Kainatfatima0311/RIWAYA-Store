@@ -47,7 +47,7 @@ export const updateSupplierSchema = createSupplierSchema.partial().omit({ code: 
 
 export const listSupplierQuerySchema = z.object({
   page: z.coerce.number().int().positive().optional().default(1),
-  limit: z.coerce.number().int().positive().max(100).optional().default(20),
+  limit: z.coerce.number().int().positive().max(200).optional().default(20),
   search: z.string().optional(),
   type: z.enum(SUPPLIER_TYPES).optional(),
   isActive: z.enum(['true', 'false']).optional(),

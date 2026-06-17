@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, ShoppingBag } from 'lucide-react';
+import { Heart, ShoppingBag, Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAppSelector } from '@/store/hooks';
 import { selectIsAuthenticated } from '@/store/slices/authSlice';
@@ -9,11 +10,15 @@ import { formatPrice } from '@/lib/format';
 import { Badge } from '@/components/ui/Badge';
 import { ProductImage } from '@/components/storefront/ProductImage';
 import { cn } from '@/lib/utils';
+import { apiErrorMessage } from '@/lib/apiError';
+import { spotlightMove } from '@/lib/spotlight';
 
 export function ProductCard({ product }) {
   const isAuth = useAppSelector(selectIsAuthenticated);
   const [addToCart, { isLoading: adding }] = useAddToCartMutation();
   const [addToWishlist] = useAddToWishlistMutation();
+  const [justAdded, setJustAdded] = useState(false);
+  const [justWished, setJustWished] = useState(false);
 
   const img = product.images?.[0]?.url;
   const onSale = product.salePrice > 0 && product.salePrice < product.basePrice;
@@ -37,8 +42,10 @@ export function ProductCard({ product }) {
         quantity: 1,
       }).unwrap();
       toast.success('Added to cart');
+      setJustAdded(true);
+      setTimeout(() => setJustAdded(false), 1300);
     } catch (err) {
-      toast.error(err?.data?.message || 'Could not add to cart');
+      toast.error(apiErrorMessage(err, 'Could not add to cart'));
     }
   };
 
@@ -52,16 +59,21 @@ export function ProductCard({ product }) {
     try {
       await addToWishlist({ product: product._id }).unwrap();
       toast.success('Added to wishlist');
+      setJustWished(true);
+      setTimeout(() => setJustWished(false), 1300);
     } catch (err) {
-      toast.error(err?.data?.message || 'Could not add to wishlist');
+      toast.error(apiErrorMessage(err, 'Could not add to wishlist'));
     }
   };
 
   return (
     <Link
       to={`/products/${product.slug}`}
-      className="group block bg-card rounded-lg overflow-hidden border hover:shadow-lg transition-shadow"
+      onMouseMove={spotlightMove}
+      className="group relative block bg-card rounded-lg overflow-hidden border glow-gold transition-all duration-300 ease-out hover:-translate-y-0.5 hover:scale-[1.02]"
     >
+      {/* Cursor-following warm gold light wash on hover */}
+      <span aria-hidden="true" className="spotlight pointer-events-none absolute inset-0 z-10 rounded-lg opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
       {/* Image */}
       <div className="relative aspect-[3/4] bg-muted overflow-hidden">
         <ProductImage
@@ -78,21 +90,33 @@ export function ProductCard({ product }) {
         </div>
 
         {/* Quick actions */}
-        <div className="absolute top-2 right-2 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute top-2 right-2 flex flex-col gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
           <button
             onClick={handleAddToWishlist}
-            className="h-8 w-8 rounded-full bg-background/95 hover:bg-background flex items-center justify-center shadow"
+            className={cn(
+              'h-8 w-8 rounded-full bg-background/95 hover:bg-background flex items-center justify-center shadow transition-all active:scale-90',
+              justWished && 'text-primary'
+            )}
             aria-label="Add to wishlist"
           >
-            <Heart className="h-4 w-4" />
+            <Heart className={cn('h-4 w-4 transition-transform', justWished && 'fill-primary scale-110')} />
           </button>
           <button
             onClick={handleAddToCart}
             disabled={adding}
-            className="h-8 w-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center shadow disabled:opacity-50"
+            className={cn(
+              'h-8 w-8 rounded-full flex items-center justify-center shadow transition-all active:scale-90 disabled:opacity-60',
+              justAdded ? 'bg-emerald-600 text-white' : 'bg-primary text-primary-foreground hover:bg-primary-hover'
+            )}
             aria-label="Add to cart"
           >
-            <ShoppingBag className="h-4 w-4" />
+            {adding ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : justAdded ? (
+              <Check key="check" className="h-4 w-4 animate-scale-in" />
+            ) : (
+              <ShoppingBag key="bag" className="h-4 w-4" />
+            )}
           </button>
         </div>
       </div>

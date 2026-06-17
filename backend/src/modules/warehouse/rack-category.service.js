@@ -1,6 +1,7 @@
 import { RackCategory } from './rack-category.model.js';
 import { Rack } from './rack.model.js';
 import { ApiError } from '../../utils/ApiError.js';
+import { escapeRegex } from '../../utils/escapeRegex.js';
 
 export const rackCategoryService = {
   async create(payload, userId) {
@@ -12,7 +13,7 @@ export const rackCategoryService = {
   async list({ isActive, search, sort = 'name' }) {
     const filter = {};
     if (isActive !== undefined) filter.isActive = isActive === 'true';
-    if (search) filter.name = new RegExp(search, 'i');
+    if (search) filter.name = new RegExp(escapeRegex(search), 'i');
     return RackCategory.find(filter).sort(sort);
   },
 

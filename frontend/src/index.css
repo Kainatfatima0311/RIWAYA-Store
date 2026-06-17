@@ -2,53 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Sonner toast — always show the X close button (default is hover-only) */
-[data-sonner-toast] [data-close-button] {
-  opacity: 1 !important;
-  transform: none !important;
-}
-
 @layer base {
   :root {
-    /* Light theme — brand: deep wine + champagne gold */
-    --background: 36 33% 97%;          /* warm cream */
-    --foreground: 350 28% 10%;
-    --card: 0 0% 100%;
-    --card-foreground: 350 28% 10%;
-    --primary: 343 70% 26%;            /* deep wine #8B1538 */
-    --primary-foreground: 36 33% 97%;
-    --secondary: 350 14% 92%;
-    --secondary-foreground: 350 28% 10%;
-    --accent: 38 38% 60%;              /* champagne gold #C9A96E */
-    --accent-foreground: 350 28% 10%;
-    --muted: 36 18% 92%;
-    --muted-foreground: 350 12% 35%;
-    --destructive: 0 84% 50%;
+    /* Light theme — Warm Ivory + Premium Gold (luxury palette, polished) */
+    --background: 34 47% 92%;          /* Cleaner Warm Ivory  ~#F3ECDE */
+    --foreground: 30 11% 11%;          /* Rich Charcoal       #1E1B18 */
+    --card: 34 47% 96%;                /* Warm off-white card ~#FAF6EF */
+    --card-foreground: 30 11% 11%;
+    --primary: 35 60% 45%;             /* Deeper Antique Gold ~#BC8233 (better contrast) */
+    --primary-foreground: 0 0% 100%;   /* White text on gold */
+    --primary-hover: 34 55% 50%;       /* Bright Gold on hover #C68A3A */
+    --secondary: 31 38% 75%;           /* Soft Beige      #D8C1A8 */
+    --secondary-foreground: 30 11% 11%;
+    --accent: 35 60% 45%;              /* Gold accent == primary ~#BC8233 */
+    --accent-foreground: 0 0% 100%;
+    --muted: 34 40% 88%;               /* Light warm beige */
+    --muted-foreground: 29 26% 23%;    /* Dark Brown      #4A3A2B */
+    --destructive: 0 72% 45%;
     --destructive-foreground: 0 0% 100%;
-    --border: 36 18% 86%;
-    --input: 36 18% 86%;
-    --ring: 343 70% 26%;
+    --border: 30 24% 80%;              /* Softer Taupe   ~#D9CEBF */
+    --input: 30 24% 70%;               /* Softer but visible field edge ~#BFAE99 */
+    --ring: 35 60% 45%;                /* Gold focus ring ~#BC8233 */
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 350 18% 8%;
-    --foreground: 36 33% 95%;
-    --card: 350 18% 11%;
-    --card-foreground: 36 33% 95%;
-    --primary: 38 38% 60%;
-    --primary-foreground: 350 28% 10%;
-    --secondary: 350 12% 18%;
-    --secondary-foreground: 36 33% 95%;
-    --accent: 343 50% 35%;
-    --accent-foreground: 36 33% 95%;
-    --muted: 350 12% 16%;
-    --muted-foreground: 36 18% 70%;
+    /* Luxury Dark theme — Matte Black + Charcoal + Gold */
+    --background: 0 0% 7%;             /* Matte Black     #121212 */
+    --foreground: 34 36% 95%;          /* Cream White     #F7F3EE */
+    --card: 0 0% 11%;                  /* Charcoal Black  #1C1C1C */
+    --card-foreground: 34 36% 95%;
+    --primary: 34 55% 50%;             /* Warm Gold       #C68A3A */
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 35 62% 55%;       /* Gold Bronze     #D49A47 */
+    --secondary: 0 0% 16%;
+    --secondary-foreground: 34 36% 95%;
+    --accent: 35 62% 55%;              /* Gold Bronze     #D49A47 */
+    --accent-foreground: 0 0% 7%;
+    --muted: 0 0% 16%;
+    --muted-foreground: 33 20% 72%;
     --destructive: 0 65% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 350 12% 20%;
-    --input: 350 12% 20%;
-    --ring: 38 38% 60%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 34 55% 50%;
   }
 
   * {
@@ -59,10 +56,99 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings: 'rlig' 1, 'calt' 1;
   }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Accessibility: honor the user's reduced-motion preference (a11y rule) */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  /* Reusable premium hover lift for cards/tiles (transform + shadow only → no layout shift) */
+  .hover-lift {
+    @apply transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl;
+  }
+  /* Subtler lift for dense admin surfaces (cards, list rows, KPI tiles) */
+  .hover-lift-sm {
+    @apply transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md;
+  }
+
+  /* Tappable affordance for non-button clickables (cards, tiles, list items) */
+  .press {
+    @apply transition-transform duration-150 active:scale-[0.98];
+  }
+
+  /* Interactive card: lift + gold border on hover, gentle press */
+  .card-interactive {
+    @apply cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl hover:border-primary/40 active:scale-[0.99];
+  }
+
+  /* Animated left-origin underline (matches the storefront navbar) — reusable on any link */
+  .link-underline {
+    @apply relative after:absolute after:-bottom-0.5 after:left-0 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-primary after:transition-transform after:duration-300 hover:after:scale-x-100;
+  }
+
+  /* Luxury gold gradient text — pairs with font-serif headings */
+  .text-gradient-gold {
+    @apply bg-gradient-to-r from-primary via-primary-hover to-primary bg-clip-text text-transparent;
+    background-size: 200% auto;
+  }
+
+  /* Frosted surface for sticky bars / overlays */
+  .glass {
+    @apply bg-background/80 backdrop-blur-md;
+  }
+
+  /* Cursor-following warm gold light wash for cards/products. Put this on an
+     overlay element inside a `group`; the parent sets --spot-x/--spot-y on
+     mouse-move (they inherit down) so the glow tracks the cursor. Pair with
+     `opacity-0 group-hover:opacity-100 transition-opacity`. */
+  .spotlight {
+    background: radial-gradient(
+      240px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+      hsl(var(--primary) / 0.18),
+      transparent 72%
+    );
+  }
+  /* Soft gold halo on hover (outer "light") — calm, GPU-friendly box-shadow. */
+  .glow-gold {
+    @apply transition-shadow duration-300;
+  }
+  .glow-gold:hover {
+    box-shadow: 0 12px 42px -12px hsl(var(--primary) / 0.5);
+  }
+
+  /* Shimmer placeholder for skeleton loading states */
+  .skeleton {
+    @apply relative overflow-hidden bg-muted;
+  }
+  .skeleton::after {
+    content: '';
+    @apply absolute inset-0 -translate-x-full animate-shimmer;
+    background-image: linear-gradient(90deg, transparent, hsl(var(--background) / 0.45), transparent);
+  }
+
+  /* Thin indeterminate progress bar (route/data loading) */
+  .progress-bar {
+    @apply relative h-0.5 w-full overflow-hidden bg-primary/15;
+  }
+  .progress-bar::after {
+    content: '';
+    @apply absolute inset-y-0 left-0 w-full bg-primary animate-progress;
   }
 }

@@ -4,6 +4,7 @@ import { Warehouse } from './warehouse.model.js';
 import { RackCategory } from './rack-category.model.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { warehouseService } from './warehouse.service.js';
+import { escapeRegex } from '../../utils/escapeRegex.js';
 
 export const rackService = {
   async create(payload, userId) {
@@ -56,7 +57,7 @@ export const rackService = {
     if (type) filter.type = type;
     if (isActive !== undefined) filter.isActive = isActive === 'true';
     if (search) {
-      filter.$or = [{ code: new RegExp(search, 'i') }, { name: new RegExp(search, 'i') }];
+      filter.$or = [{ code: new RegExp(escapeRegex(search), 'i') }, { name: new RegExp(escapeRegex(search), 'i') }];
     }
 
     const [items, total] = await Promise.all([

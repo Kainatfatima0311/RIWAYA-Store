@@ -5,6 +5,7 @@ import { Floor } from '../warehouse/floor.model.js';
 import { Rack } from '../warehouse/rack.model.js';
 import { User } from '../user/user.model.js';
 import { ApiError } from '../../utils/ApiError.js';
+import { escapeRegex } from '../../utils/escapeRegex.js';
 
 const validateRefs = async ({ category, warehouse, floor, rack, assignedTo }) => {
   const checks = [];
@@ -77,10 +78,10 @@ export const equipmentService = {
     }
     if (search) {
       filter.$or = [
-        { name: new RegExp(search, 'i') },
-        { brand: new RegExp(search, 'i') },
-        { model: new RegExp(search, 'i') },
-        { serialNumber: new RegExp(search, 'i') },
+        { name: new RegExp(escapeRegex(search), 'i') },
+        { brand: new RegExp(escapeRegex(search), 'i') },
+        { model: new RegExp(escapeRegex(search), 'i') },
+        { serialNumber: new RegExp(escapeRegex(search), 'i') },
       ];
     }
 

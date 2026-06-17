@@ -27,13 +27,13 @@ const run = async () => {
         console.log(`  Role:     ${oldRole} → super_admin`);
         console.log(`  Password: ${superAdminPassword} (reset)`);
       } else {
-        // Already correct — also reset password for convenience
-        existing.password = superAdminPassword;
-        existing.isActive = true;
-        await existing.save();
-        console.log('ℹ Super admin already exists — password reset to default');
+        // Already correct — leave the existing password untouched (idempotent).
+        if (!existing.isActive) {
+          existing.isActive = true;
+          await existing.save();
+        }
+        console.log('ℹ Super admin already exists — no changes made (password left intact)');
         console.log(`  Email:    ${superAdminEmail}`);
-        console.log(`  Password: ${superAdminPassword}`);
       }
       await mongoose.disconnect();
       process.exit(0);

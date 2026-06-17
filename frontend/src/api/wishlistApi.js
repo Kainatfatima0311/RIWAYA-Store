@@ -9,6 +9,19 @@ export const wishlistApi = baseApi.injectEndpoints({
     addToWishlist: b.mutation({
       query: (body) => ({ url: '/wishlist/items', method: 'POST', body }),
       invalidatesTags: ['Wishlist'],
+      // Optimistic: pop the navbar wishlist count immediately; refetch reconciles.
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        const patch = dispatch(
+          wishlistApi.util.updateQueryData('getWishlist', undefined, (draft) => {
+            if (draft?.data) draft.data.itemCount = (draft.data.itemCount || 0) + 1;
+          })
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+        }
+      },
     }),
     removeWishlistItem: b.mutation({
       query: (itemId) => ({ url: `/wishlist/items/${itemId}`, method: 'DELETE' }),

@@ -3,6 +3,7 @@ import { User } from '../user/user.model.js';
 import { Warehouse } from '../warehouse/warehouse.model.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { formatSequenceNoYear } from '../../utils/counter.js';
+import { escapeRegex } from '../../utils/escapeRegex.js';
 
 const startOfDay = (d) => {
   const x = new Date(d);
@@ -47,12 +48,12 @@ export const employeeService = {
     if (reportsTo) filter.reportsTo = reportsTo;
     if (search) {
       filter.$or = [
-        { name: new RegExp(search, 'i') },
-        { email: new RegExp(search, 'i') },
-        { phone: new RegExp(search, 'i') },
-        { employeeCode: new RegExp(search, 'i') },
-        { designation: new RegExp(search, 'i') },
-        { cnic: new RegExp(search, 'i') },
+        { name: new RegExp(escapeRegex(search), 'i') },
+        { email: new RegExp(escapeRegex(search), 'i') },
+        { phone: new RegExp(escapeRegex(search), 'i') },
+        { employeeCode: new RegExp(escapeRegex(search), 'i') },
+        { designation: new RegExp(escapeRegex(search), 'i') },
+        { cnic: new RegExp(escapeRegex(search), 'i') },
       ];
     }
 
@@ -155,6 +156,15 @@ export const employeeService = {
       notes: payload.notes,
       markedBy,
     };
+
+    // findOneAndUpdate does NOT trigger the pre('save') hook, so compute here.
+    if (payload.checkIn && payload.checkOut) {
+      data.hoursWorked = +(
+        (new Date(payload.checkOut) - new Date(payload.checkIn)) / (1000 * 60 * 60)
+      ).toFixed(2);
+    } else {
+      data.hoursWorked = null;
+    }
 
     return Attendance.findOneAndUpdate(
       { employee: employeeId, date },

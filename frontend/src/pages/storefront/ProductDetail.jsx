@@ -12,8 +12,10 @@ import { Badge } from '@/components/ui/Badge';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ProductImage } from '@/components/storefront/ProductImage';
+import { Reveal } from '@/components/ui/Reveal';
 import { formatPrice } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { apiErrorMessage } from '@/lib/apiError';
 
 export default function ProductDetail() {
   const { slug } = useParams();
@@ -52,7 +54,7 @@ export default function ProductDetail() {
     try {
       await addToCart({ product: product._id, variantId: selectedVariant._id, quantity: qty }).unwrap();
       toast.success('Added to cart');
-    } catch (err) { toast.error(err?.data?.message || 'Could not add to cart'); }
+    } catch (err) { toast.error(apiErrorMessage(err, 'Could not add to cart')); }
   };
 
   const handleAddToWishlist = async () => {
@@ -60,23 +62,23 @@ export default function ProductDetail() {
     try {
       await addToWishlist({ product: product._id }).unwrap();
       toast.success(inWishlist ? 'Already in wishlist' : 'Added to wishlist');
-    } catch (err) { toast.error(err?.data?.message || 'Could not add to wishlist'); }
+    } catch (err) { toast.error(apiErrorMessage(err, 'Could not add to wishlist')); }
   };
 
   return (
     <div className="container py-8">
-      <Link to="/products" className="text-sm text-muted-foreground hover:text-primary inline-flex items-center gap-1 mb-6">
-        <ArrowLeft className="h-4 w-4" /> Back to shop
+      <Link to="/products" className="animate-fade-down text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1 mb-6 group/back">
+        <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover/back:-translate-x-0.5" /> Back to shop
       </Link>
 
       <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
-        <div>
-          <div className="aspect-[3/4] bg-muted rounded-lg overflow-hidden">
+        <div className="animate-scale-in">
+          <div key={imgIdx} className="group aspect-[3/4] bg-muted rounded-lg overflow-hidden animate-fade-in">
             <ProductImage
               src={images[imgIdx]?.url}
               alt={product.name}
               fallbackLabel={product.name}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           </div>
           {images.length > 1 && (
@@ -85,16 +87,16 @@ export default function ProductDetail() {
                 <button
                   key={img._id || i}
                   onClick={() => setImgIdx(i)}
-                  className={cn('aspect-square rounded overflow-hidden border-2', i === imgIdx ? 'border-primary' : 'border-transparent opacity-70 hover:opacity-100')}
+                  className={cn('group aspect-square rounded overflow-hidden border-2 transition-all duration-300 press cursor-pointer', i === imgIdx ? 'border-primary ring-1 ring-primary/40' : 'border-transparent opacity-70 hover:opacity-100')}
                 >
-                  <ProductImage src={img.url} alt="" className="h-full w-full object-cover" />
+                  <ProductImage src={img.url} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110" />
                 </button>
               ))}
             </div>
           )}
         </div>
 
-        <div>
+        <div className="animate-fade-up">
           {product.brand && <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">{product.brand}</div>}
           <h1 className="font-serif text-3xl md:text-4xl mb-3">{product.name}</h1>
 
@@ -127,10 +129,10 @@ export default function ProductDetail() {
                     key={v._id}
                     onClick={() => setVariantId(v._id)}
                     className={cn(
-                      'px-3 py-2 rounded-md border text-sm transition-colors',
+                      'px-3 py-2 rounded-md border text-sm transition-all duration-200 press cursor-pointer',
                       (v._id === (variantId || selectedVariant?._id))
                         ? 'bg-primary text-primary-foreground border-primary'
-                        : 'hover:border-primary'
+                        : 'hover:border-primary hover:-translate-y-0.5'
                     )}
                   >
                     {v.label}
@@ -148,9 +150,9 @@ export default function ProductDetail() {
 
           <div className="flex items-center gap-3 mb-4">
             <div className="flex items-center border rounded-md">
-              <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="p-2 hover:bg-accent/30"><Minus className="h-4 w-4" /></button>
-              <span className="px-4 font-medium">{qty}</span>
-              <button onClick={() => setQty((q) => Math.min(availableQty || 100, q + 1))} className="p-2 hover:bg-accent/30"><Plus className="h-4 w-4" /></button>
+              <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="p-2 hover:bg-accent/30 transition-colors active:scale-90 cursor-pointer"><Minus className="h-4 w-4" /></button>
+              <span key={qty} className="px-4 font-medium inline-block animate-pop">{qty}</span>
+              <button onClick={() => setQty((q) => Math.min(availableQty || 100, q + 1))} className="p-2 hover:bg-accent/30 transition-colors active:scale-90 cursor-pointer"><Plus className="h-4 w-4" /></button>
             </div>
             <Button onClick={handleAddToCart} loading={adding} disabled={availableQty <= 0} className="flex-1">
               <ShoppingBag className="h-4 w-4 mr-2" /> Add to cart
@@ -161,16 +163,16 @@ export default function ProductDetail() {
           </div>
 
           {product.description && (
-            <div className="border-t pt-6 mt-6">
+            <Reveal animation="fade-up" className="border-t pt-6 mt-6">
               <h2 className="font-semibold mb-2">Description</h2>
               <p className="text-sm text-muted-foreground whitespace-pre-wrap">{product.description}</p>
-            </div>
+            </Reveal>
           )}
 
           {product.specifications?.length > 0 && (
-            <div className="border-t pt-6 mt-6">
+            <Reveal animation="fade-up" className="border-t pt-6 mt-6">
               <h2 className="font-semibold mb-3">Specifications</h2>
-              <dl className="grid grid-cols-2 gap-2 text-sm">
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
                 {product.specifications.map((s, i) => (
                   <div key={i} className="contents">
                     <dt className="text-muted-foreground">{s.label}</dt>
@@ -178,7 +180,7 @@ export default function ProductDetail() {
                   </div>
                 ))}
               </dl>
-            </div>
+            </Reveal>
           )}
         </div>
       </div>

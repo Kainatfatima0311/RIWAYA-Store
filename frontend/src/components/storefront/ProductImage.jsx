@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
  */
 export function ProductImage({ src, alt = '', className, fallbackLabel = 'RIWAYA' }) {
   const [errored, setErrored] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   if (!src || errored) {
     return (
@@ -31,8 +32,13 @@ export function ProductImage({ src, alt = '', className, fallbackLabel = 'RIWAYA
     <img
       src={resolveImage(src)}
       alt={alt}
-      className={className}
+      className={cn(
+        'transition-opacity duration-500 ease-out',
+        loaded ? 'opacity-100' : 'opacity-0',
+        className
+      )}
       loading="lazy"
+      onLoad={() => setLoaded(true)}
       onError={() => setErrored(true)}
     />
   );

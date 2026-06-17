@@ -2,6 +2,7 @@ import { Warehouse } from './warehouse.model.js';
 import { Floor } from './floor.model.js';
 import { Rack } from './rack.model.js';
 import { ApiError } from '../../utils/ApiError.js';
+import { escapeRegex } from '../../utils/escapeRegex.js';
 
 export const warehouseService = {
   async create(payload, userId) {
@@ -18,12 +19,12 @@ export const warehouseService = {
   async list({ page = 1, limit = 20, search, isActive, city, sort = '-createdAt' }) {
     const filter = {};
     if (isActive !== undefined) filter.isActive = isActive === 'true';
-    if (city) filter['location.city'] = new RegExp(city, 'i');
+    if (city) filter['location.city'] = new RegExp(escapeRegex(city), 'i');
     if (search) {
       filter.$or = [
-        { name: new RegExp(search, 'i') },
-        { code: new RegExp(search, 'i') },
-        { 'location.city': new RegExp(search, 'i') },
+        { name: new RegExp(escapeRegex(search), 'i') },
+        { code: new RegExp(escapeRegex(search), 'i') },
+        { 'location.city': new RegExp(escapeRegex(search), 'i') },
       ];
     }
     const [items, total] = await Promise.all([

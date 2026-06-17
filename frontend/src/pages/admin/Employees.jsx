@@ -19,9 +19,11 @@ import { Input, Select, Textarea } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Badge } from '@/components/ui/Badge';
 import { formatPrice, formatDate } from '@/lib/format';
+import { apiErrorMessage } from '@/lib/apiError';
 
 const DEPARTMENTS = ['warehouse', 'sales', 'inventory', 'accounts', 'admin', 'hr', 'it', 'marketing', 'logistics', 'production', 'other'];
 const STATUSES = ['active', 'on_leave', 'suspended', 'terminated', 'resigned', 'probation'];
+const SALARY_SUFFIX = { monthly: 'mo', weekly: 'wk', daily: 'day', hourly: 'hr' };
 
 export default function Employees() {
   const [filters, setFilters] = useState({ search: '', department: '', status: '' });
@@ -42,7 +44,14 @@ export default function Employees() {
       else await create(values).unwrap();
       toast.success(editing ? 'Updated' : 'Created');
       setModalOpen(false);
-    } catch (err) { toast.error(err?.data?.message || 'Failed'); }
+    } catch (err) { toast.error(apiErrorMessage(err, 'Failed')); }
+  };
+
+  const handleSetStatus = async (id, status) => {
+    try {
+      await setStatus({ id, status }).unwrap();
+      toast.success('Status updated');
+    } catch (err) { toast.error(apiErrorMessage(err, 'Failed to update status')); }
   };
 
   const columns = [
@@ -50,10 +59,10 @@ export default function Employees() {
     { key: 'designation', label: 'Designation' },
     { key: 'department', label: 'Dept', render: (r) => <Badge variant="outline" className="capitalize">{r.department}</Badge> },
     { key: 'phone', label: 'Phone' },
-    { key: 'salary', label: 'Salary', render: (r) => formatPrice(r.salary) + `/${r.salaryFrequency?.replace('ly','')}` },
+    { key: 'salary', label: 'Salary', render: (r) => `${formatPrice(r.salary)}/${SALARY_SUFFIX[r.salaryFrequency] || r.salaryFrequency || ''}` },
     { key: 'joiningDate', label: 'Joined', render: (r) => formatDate(r.joiningDate) },
     { key: 'status', label: 'Status', render: (r) => (
-      <Select value={r.status} onChange={(e) => setStatus({ id: r._id, status: e.target.value }).then(() => toast.success('Status updated'))} className="h-8 text-xs w-32">
+      <Select value={r.status} onChange={(e) => handleSetStatus(r._id, e.target.value)} className="h-8 text-xs w-32">
         {STATUSES.map((s) => <option key={s} value={s}>{s.replace('_',' ')}</option>)}
       </Select>
     ) },
@@ -61,8 +70,8 @@ export default function Employees() {
       key: 'actions', label: '', className: 'text-right',
       render: (r) => (
         <div className="flex items-center justify-end gap-1">
-          <button onClick={() => { setEditing(r); setModalOpen(true); }} className="p-1.5 hover:bg-accent/30 rounded"><Pencil className="h-4 w-4" /></button>
-          <button onClick={() => setConfirmId(r._id)} className="p-1.5 hover:bg-destructive/10 text-destructive rounded"><Trash2 className="h-4 w-4" /></button>
+          <button onClick={() => { setEditing(r); setModalOpen(true); }} className="p-1.5 hover:bg-accent/30 rounded transition-colors"><Pencil className="h-4 w-4" /></button>
+          <button onClick={() => setConfirmId(r._id)} className="p-1.5 hover:bg-destructive/10 text-destructive rounded transition-colors"><Trash2 className="h-4 w-4" /></button>
         </div>
       ),
     },
@@ -70,8 +79,10 @@ export default function Employees() {
 
   return (
     <div>
-      <PageHeader title="Employees" description="HR records, departments, salaries"
-        actions={<Button onClick={() => { setEditing(null); setModalOpen(true); }}><Plus className="h-4 w-4 mr-1" /> Add employee</Button>} />
+      <div className="animate-fade-up">
+        <PageHeader title="Employees" description="HR records, departments, salaries"
+          actions={<Button onClick={() => { setEditing(null); setModalOpen(true); }}><Plus className="h-4 w-4 mr-1" /> Add employee</Button>} />
+      </div>
 
       <FilterBar search={filters.search} onSearch={(v) => { setFilters({ ...filters, search: v }); setPage(1); }} placeholder="Search by name, phone, code">
         <FilterField label="Department">
@@ -92,12 +103,12 @@ export default function Employees() {
 
       <EmployeeFormModal open={modalOpen} onClose={() => setModalOpen(false)} initial={editing} onSubmit={handleSave} loading={creating || updating} />
       <ConfirmDialog open={!!confirmId} onClose={() => setConfirmId(null)} title="Delete employee?"
-        onConfirm={async () => { try { await remove(confirmId).unwrap(); toast.success('Deleted'); setConfirmId(null); } catch (err) { toast.error(err?.data?.message || 'Failed'); } }} loading={deleting} />
+        onConfirm={async () => { try { await remove(confirmId).unwrap(); toast.success('Deleted'); setConfirmId(null); } catch (err) { toast.error(apiErrorMessage(err, 'Failed')); } }} loading={deleting} />
     </div>
   );
 }
 
-function EmployeeFormModal({ open, onClose, initial, onSubmit, loading }) {
+export function EmployeeFormModal({ open, onClose, initial, onSubmit, loading }) {
   const { register, handleSubmit } = useForm({
     values: initial ? {
       name: initial.name, phone: initial.phone, email: initial.email || '',
@@ -110,7 +121,7 @@ function EmployeeFormModal({ open, onClose, initial, onSubmit, loading }) {
   return (
     <Modal open={open} onClose={onClose} title={initial ? 'Edit employee' : 'Add employee'} size="lg"
       footer={<><Button variant="outline" onClick={onClose}>Cancel</Button><Button onClick={handleSubmit((v) => onSubmit({ ...v, salary: Number(v.salary) }))} loading={loading}>{initial ? 'Save' : 'Add'}</Button></>}>
-      <form className="grid grid-cols-2 gap-3">
+      <form className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="col-span-2"><Label required>Name</Label><Input {...register('name', { required: true })} /></div>
         <div><Label required>Phone</Label><Input {...register('phone', { required: true })} /></div>
         <div><Label>Email</Label><Input type="email" {...register('email')} /></div>

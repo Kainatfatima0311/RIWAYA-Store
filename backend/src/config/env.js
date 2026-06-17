@@ -8,10 +8,18 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const required = ['MONGO_URI', 'JWT_SECRET'];
+// Cloudinary stores all uploads in production (Vercel has no writable disk), so
+// require its keys there. Locally they can stay empty unless you test uploads.
+if (process.env.NODE_ENV === 'production') {
+  required.push('CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET');
+}
 const missing = required.filter((k) => !process.env[k]);
 if (missing.length) {
-  console.error(`Missing required env vars: ${missing.join(', ')}`);
-  process.exit(1);
+  // Throw instead of process.exit(1): on Vercel this surfaces at cold start
+  // where the serverless entry (api/index.js) catches it and returns a clean
+  // 500 with the message logged, rather than an opaque FUNCTION_INVOCATION_FAILED.
+  // Locally and in CLI seed scripts this still fails fast with a clear message.
+  throw new Error(`Missing required env vars: ${missing.join(', ')}`);
 }
 
 export const env = {

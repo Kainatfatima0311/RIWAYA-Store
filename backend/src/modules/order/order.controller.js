@@ -68,6 +68,8 @@ export const orderController = {
         orderNumber: order.orderNumber,
         status: order.status,
         paymentStatus: order.paymentStatus,
+        hasPendingPayment: order.hasPendingPayment,
+        pendingPayment: order.pendingPayment,
         statusHistory: order.statusHistory,
         courier: order.courier,
         estimatedDelivery: order.estimatedDelivery,

@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/Input';
 import { Label, FormError } from '@/components/ui/Label';
 import { Badge } from '@/components/ui/Badge';
 import { useForm } from 'react-hook-form';
+import { apiErrorMessage } from '@/lib/apiError';
 
 export default function Warehouses() {
   const [search, setSearch] = useState('');
@@ -39,7 +40,7 @@ export default function Warehouses() {
       toast.success('Warehouse deleted');
       setConfirmId(null);
     } catch (err) {
-      toast.error(err?.data?.message || 'Cannot delete');
+      toast.error(apiErrorMessage(err, 'Cannot delete'));
     }
   };
 
@@ -58,8 +59,8 @@ export default function Warehouses() {
       key: 'actions', label: '', className: 'text-right',
       render: (r) => (
         <div className="flex items-center justify-end gap-1">
-          <button onClick={(e) => { e.stopPropagation(); openEdit(r); }} className="p-1.5 hover:bg-accent/30 rounded"><Pencil className="h-4 w-4" /></button>
-          <button onClick={(e) => { e.stopPropagation(); setConfirmId(r._id); }} className="p-1.5 hover:bg-destructive/10 text-destructive rounded"><Trash2 className="h-4 w-4" /></button>
+          <button onClick={(e) => { e.stopPropagation(); openEdit(r); }} className="p-1.5 hover:bg-accent/30 rounded transition-colors"><Pencil className="h-4 w-4" /></button>
+          <button onClick={(e) => { e.stopPropagation(); setConfirmId(r._id); }} className="p-1.5 hover:bg-destructive/10 text-destructive rounded transition-colors"><Trash2 className="h-4 w-4" /></button>
         </div>
       ),
     },
@@ -67,11 +68,13 @@ export default function Warehouses() {
 
   return (
     <div>
-      <PageHeader
-        title="Warehouses"
-        description="Locations, floors, racks and storage capacity"
-        actions={<Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> New warehouse</Button>}
-      />
+      <div className="animate-fade-up">
+        <PageHeader
+          title="Warehouses"
+          description="Locations, floors, racks and storage capacity"
+          actions={<Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> New warehouse</Button>}
+        />
+      </div>
       <FilterBar search={search} onSearch={(v) => { setSearch(v); setPage(1); }} placeholder="Search by name, code or city" />
       <DataTable
         columns={columns}
@@ -96,7 +99,7 @@ export default function Warehouses() {
             }
             setModalOpen(false);
           } catch (err) {
-            toast.error(err?.data?.message || 'Failed');
+            toast.error(apiErrorMessage(err, 'Failed'));
           }
         }}
         loading={creating || updating}
@@ -149,15 +152,15 @@ function WarehouseFormModal({ open, onClose, initial, onSubmit, loading }) {
       size="lg"
       footer={<><Button variant="outline" onClick={onClose}>Cancel</Button><Button onClick={handleSubmit(submit)} loading={loading}>{initial ? 'Save' : 'Create'}</Button></>}
     >
-      <form className="grid grid-cols-2 gap-3">
-        <div className="col-span-2"><Label required>Name</Label><Input {...register('name', { required: true })} /></div>
+      <form className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="sm:col-span-2"><Label required>Name</Label><Input {...register('name', { required: true, minLength: { value: 3, message: 'At least 3 characters' } })} /></div>
         <div><Label required>Code</Label><Input {...register('code', { required: true })} placeholder="WH-LHR-01" /></div>
         <div><Label required>City</Label><Input {...register('city', { required: true })} placeholder="Lahore" /></div>
         <div><Label>Area</Label><Input {...register('area')} placeholder="DHA Phase 5" /></div>
-        <div className="col-span-2"><Label>Full address</Label><Input {...register('address')} /></div>
+        <div className="sm:col-span-2"><Label>Full address</Label><Input {...register('address')} /></div>
         <div><Label>Area (marla)</Label><Input type="number" {...register('areaMarla')} /></div>
         <div><Label>Total floors</Label><Input type="number" {...register('totalFloors')} /></div>
-        <div className="col-span-2"><Label>Storage capacity (units)</Label><Input type="number" {...register('storageCapacity')} /></div>
+        <div className="sm:col-span-2"><Label>Storage capacity (units)</Label><Input type="number" {...register('storageCapacity')} /></div>
       </form>
     </Modal>
   );

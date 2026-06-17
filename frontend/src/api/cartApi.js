@@ -9,6 +9,21 @@ export const cartApi = baseApi.injectEndpoints({
     addToCart: b.mutation({
       query: (body) => ({ url: '/cart/items', method: 'POST', body }),
       invalidatesTags: ['Cart'],
+      // Optimistic: bump the navbar cart count the instant the user clicks, so
+      // adding feels real-time. The tag invalidation then refetches and
+      // reconciles with the server's true total (and undoes this on error).
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        const patch = dispatch(
+          cartApi.util.updateQueryData('getCart', undefined, (draft) => {
+            if (draft?.data) draft.data.itemCount = (draft.data.itemCount || 0) + (arg.quantity || 1);
+          })
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+        }
+      },
     }),
     updateCartItem: b.mutation({
       query: ({ itemId, quantity }) => ({

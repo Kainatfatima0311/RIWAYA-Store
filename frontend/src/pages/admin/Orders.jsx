@@ -8,6 +8,8 @@ import { FilterBar, FilterField } from '@/components/admin/FilterBar';
 import { Select } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent } from '@/components/ui/Card';
+import { Stagger } from '@/components/ui/Reveal';
+import { CountUp } from '@/components/ui/CountUp';
 import { formatPrice, formatDate } from '@/lib/format';
 
 const STATUSES = ['pending','confirmed','packed','shipped','out_for_delivery','delivered','cancelled','returned','refunded'];
@@ -32,7 +34,7 @@ export default function Orders() {
     {
       key: 'actions', label: '', className: 'text-right',
       render: (r) => (
-        <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/orders/${r._id}`); }} className="p-1.5 hover:bg-accent/30 rounded">
+        <button aria-label="View order" onClick={(e) => { e.stopPropagation(); navigate(`/admin/orders/${r._id}`); }} className="p-1.5 hover:bg-accent/30 rounded transition-colors">
           <Eye className="h-4 w-4" />
         </button>
       ),
@@ -43,12 +45,12 @@ export default function Orders() {
     <div>
       <PageHeader title="Orders" description="All customer orders (online + walk-in)" />
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Card><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Total orders</div><div className="text-2xl font-semibold">{summary.totalOrders}</div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Revenue</div><div className="text-2xl font-semibold text-primary">{formatPrice(summary.totalRevenue)}</div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Collected</div><div className="text-2xl font-semibold text-emerald-600">{formatPrice(summary.totalPaid)}</div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Refunded</div><div className="text-2xl font-semibold text-destructive">{formatPrice(summary.totalRefunded)}</div></CardContent></Card>
-      </div>
+      <Stagger step={70} maxDelay={400} animation="fade-up-sm" className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <Card className="hover-lift-sm"><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Total orders</div><div className="text-2xl font-semibold"><CountUp value={summary.totalOrders} /></div></CardContent></Card>
+        <Card className="hover-lift-sm"><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Revenue</div><div className="text-2xl font-semibold text-primary"><CountUp value={summary.totalRevenue} format={formatPrice} /></div></CardContent></Card>
+        <Card className="hover-lift-sm"><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Collected</div><div className="text-2xl font-semibold text-emerald-600"><CountUp value={summary.totalPaid} format={formatPrice} /></div></CardContent></Card>
+        <Card className="hover-lift-sm"><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Refunded</div><div className="text-2xl font-semibold text-destructive"><CountUp value={summary.totalRefunded} format={formatPrice} /></div></CardContent></Card>
+      </Stagger>
 
       <FilterBar search={filters.search} onSearch={(v) => { setFilters({ ...filters, search: v }); setPage(1); }} placeholder="Search order number">
         <FilterField label="Type">

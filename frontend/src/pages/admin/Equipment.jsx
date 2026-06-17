@@ -22,7 +22,10 @@ import { Input, Select, Textarea } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent } from '@/components/ui/Card';
+import { Stagger } from '@/components/ui/Reveal';
+import { CountUp } from '@/components/ui/CountUp';
 import { formatPrice, formatDate } from '@/lib/format';
+import { apiErrorMessage } from '@/lib/apiError';
 
 const CONDITIONS = ['new', 'working', 'needs_repair', 'under_repair', 'retired', 'lost'];
 
@@ -50,7 +53,7 @@ export default function Equipment() {
       else await create(values).unwrap();
       toast.success(editing ? 'Updated' : 'Created');
       setModalOpen(false);
-    } catch (err) { toast.error(err?.data?.message || 'Failed'); }
+    } catch (err) { toast.error(apiErrorMessage(err, 'Failed')); }
   };
 
   const columns = [
@@ -66,8 +69,8 @@ export default function Equipment() {
       key: 'actions', label: '', className: 'text-right',
       render: (r) => (
         <div className="flex items-center justify-end gap-1">
-          <button onClick={() => { setEditing(r); setModalOpen(true); }} className="p-1.5 hover:bg-accent/30 rounded"><Pencil className="h-4 w-4" /></button>
-          <button onClick={() => setConfirmId(r._id)} className="p-1.5 hover:bg-destructive/10 text-destructive rounded"><Trash2 className="h-4 w-4" /></button>
+          <button onClick={() => { setEditing(r); setModalOpen(true); }} className="p-1.5 hover:bg-accent/30 rounded transition-colors"><Pencil className="h-4 w-4" /></button>
+          <button onClick={() => setConfirmId(r._id)} className="p-1.5 hover:bg-destructive/10 text-destructive rounded transition-colors"><Trash2 className="h-4 w-4" /></button>
         </div>
       ),
     },
@@ -78,11 +81,11 @@ export default function Equipment() {
       <PageHeader title="Equipment & Assets" description="Printers, laptops, fans, water coolers — admin's purchase records"
         actions={<><Button variant="outline" onClick={() => setCatModalOpen(true)}>Categories</Button><Button onClick={() => { setEditing(null); setModalOpen(true); }}><Plus className="h-4 w-4 mr-1" /> New asset</Button></>} />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Total records</div><div className="text-2xl font-semibold">{spend?.data?.totalRecords || 0}</div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Total items</div><div className="text-2xl font-semibold">{spend?.data?.totalItems || 0}</div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Total spend</div><div className="text-2xl font-semibold text-primary">{formatPrice(spend?.data?.totalSpent)}</div></CardContent></Card>
-      </div>
+      <Stagger step={80} maxDelay={400} animation="fade-up-sm" className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <Card className="hover-lift-sm"><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Total records</div><div className="text-2xl font-semibold"><CountUp value={spend?.data?.totalRecords || 0} /></div></CardContent></Card>
+        <Card className="hover-lift-sm"><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Total items</div><div className="text-2xl font-semibold"><CountUp value={spend?.data?.totalItems || 0} /></div></CardContent></Card>
+        <Card className="hover-lift-sm"><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Total spend</div><div className="text-2xl font-semibold text-primary"><CountUp value={spend?.data?.totalSpent || 0} format={formatPrice} /></div></CardContent></Card>
+      </Stagger>
 
       <FilterBar search={filters.search} onSearch={(v) => { setFilters({ ...filters, search: v }); setPage(1); }}>
         <FilterField label="Category">
@@ -104,11 +107,11 @@ export default function Equipment() {
       <EquipmentFormModal open={modalOpen} onClose={() => setModalOpen(false)} initial={editing} categories={cats?.data || []} warehouses={warehouses?.data || []} onSubmit={handleSave} loading={creating || updating} />
 
       <Modal open={catModalOpen} onClose={() => setCatModalOpen(false)} title="Equipment categories">
-        <CategoriesQuickList categories={cats?.data || []} onCreate={async (name) => { try { await createCat({ name }).unwrap(); toast.success('Category created'); } catch (e) { toast.error(e?.data?.message || 'Failed'); } }} loading={catCreating} />
+        <CategoriesQuickList categories={cats?.data || []} onCreate={async (name) => { try { await createCat({ name }).unwrap(); toast.success('Category created'); } catch (e) { toast.error(apiErrorMessage(e, 'Failed')); } }} loading={catCreating} />
       </Modal>
 
       <ConfirmDialog open={!!confirmId} onClose={() => setConfirmId(null)} title="Delete asset?"
-        onConfirm={async () => { try { await remove(confirmId).unwrap(); toast.success('Deleted'); setConfirmId(null); } catch (err) { toast.error(err?.data?.message || 'Failed'); } }} loading={deleting} />
+        onConfirm={async () => { try { await remove(confirmId).unwrap(); toast.success('Deleted'); setConfirmId(null); } catch (err) { toast.error(apiErrorMessage(err, 'Failed')); } }} loading={deleting} />
     </div>
   );
 }
@@ -134,8 +137,8 @@ function EquipmentFormModal({ open, onClose, initial, categories, warehouses, on
         condition: v.condition, vendor: { name: v.vendorName, phone: v.vendorPhone },
         invoiceNumber: v.invoiceNumber || undefined, notes: v.notes || undefined,
       }))} loading={loading}>{initial ? 'Save' : 'Create'}</Button></>}>
-      <form className="grid grid-cols-2 gap-3">
-        <div className="col-span-2"><Label required>Name</Label><Input {...register('name', { required: true })} placeholder="HP LaserJet Pro M1136" /></div>
+      <form className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="sm:col-span-2"><Label required>Name</Label><Input {...register('name', { required: true })} placeholder="HP LaserJet Pro M1136" /></div>
         <div><Label>Brand</Label><Input {...register('brand')} /></div>
         <div><Label>Model</Label><Input {...register('model')} /></div>
         <div><Label>Serial #</Label><Input {...register('serialNumber')} /></div>
@@ -148,8 +151,8 @@ function EquipmentFormModal({ open, onClose, initial, categories, warehouses, on
         <div><Label>Warranty (months)</Label><Input type="number" {...register('warrantyMonths')} /></div>
         <div><Label>Vendor name</Label><Input {...register('vendorName')} /></div>
         <div><Label>Vendor phone</Label><Input {...register('vendorPhone')} /></div>
-        <div className="col-span-2"><Label>Invoice number</Label><Input {...register('invoiceNumber')} /></div>
-        <div className="col-span-2"><Label>Notes</Label><Textarea rows={2} {...register('notes')} /></div>
+        <div className="sm:col-span-2"><Label>Invoice number</Label><Input {...register('invoiceNumber')} /></div>
+        <div className="sm:col-span-2"><Label>Notes</Label><Textarea rows={2} {...register('notes')} /></div>
       </form>
     </Modal>
   );

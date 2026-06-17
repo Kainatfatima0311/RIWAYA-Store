@@ -18,6 +18,7 @@ import { Input, Select, Textarea } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Badge } from '@/components/ui/Badge';
 import { formatPrice, formatDate } from '@/lib/format';
+import { apiErrorMessage } from '@/lib/apiError';
 
 export default function Customers() {
   const [filters, setFilters] = useState({ search: '', customerType: '', segment: '' });
@@ -37,7 +38,7 @@ export default function Customers() {
       else await create(values).unwrap();
       toast.success(editing ? 'Updated' : 'Created');
       setModalOpen(false);
-    } catch (err) { toast.error(err?.data?.message || 'Failed'); }
+    } catch (err) { toast.error(apiErrorMessage(err, 'Failed')); }
   };
 
   const columns = [
@@ -53,8 +54,8 @@ export default function Customers() {
       key: 'actions', label: '', className: 'text-right',
       render: (r) => (
         <div className="flex items-center justify-end gap-1">
-          <button onClick={() => { setEditing(r); setModalOpen(true); }} className="p-1.5 hover:bg-accent/30 rounded"><Pencil className="h-4 w-4" /></button>
-          <button onClick={() => setConfirmId(r._id)} className="p-1.5 hover:bg-destructive/10 text-destructive rounded"><Trash2 className="h-4 w-4" /></button>
+          <button aria-label="Edit customer" onClick={() => { setEditing(r); setModalOpen(true); }} className="p-1.5 hover:bg-accent/30 rounded transition-colors"><Pencil className="h-4 w-4" /></button>
+          <button aria-label="Delete customer" onClick={() => setConfirmId(r._id)} className="p-1.5 hover:bg-destructive/10 text-destructive rounded transition-colors"><Trash2 className="h-4 w-4" /></button>
         </div>
       ),
     },
@@ -62,8 +63,10 @@ export default function Customers() {
 
   return (
     <div>
-      <PageHeader title="Customers" description="Online & walk-in customers"
-        actions={<Button onClick={() => { setEditing(null); setModalOpen(true); }}><Plus className="h-4 w-4 mr-1" /> Add walk-in</Button>} />
+      <div className="animate-fade-up">
+        <PageHeader title="Customers" description="Online & walk-in customers"
+          actions={<Button onClick={() => { setEditing(null); setModalOpen(true); }}><Plus className="h-4 w-4 mr-1" /> Add walk-in</Button>} />
+      </div>
 
       <FilterBar search={filters.search} onSearch={(v) => { setFilters({ ...filters, search: v }); setPage(1); }} placeholder="Search by name, phone, email, code">
         <FilterField label="Type">
@@ -85,7 +88,7 @@ export default function Customers() {
 
       <CustomerFormModal open={modalOpen} onClose={() => setModalOpen(false)} initial={editing} onSubmit={handleSave} loading={creating || updating} />
       <ConfirmDialog open={!!confirmId} onClose={() => setConfirmId(null)} title="Delete customer?"
-        onConfirm={async () => { try { await remove(confirmId).unwrap(); toast.success('Deleted'); setConfirmId(null); } catch (err) { toast.error(err?.data?.message || 'Cannot delete'); } }} loading={deleting} />
+        onConfirm={async () => { try { await remove(confirmId).unwrap(); toast.success('Deleted'); setConfirmId(null); } catch (err) { toast.error(apiErrorMessage(err, 'Cannot delete')); } }} loading={deleting} />
     </div>
   );
 }
@@ -104,11 +107,11 @@ function CustomerFormModal({ open, onClose, initial, onSubmit, loading }) {
       footer={<><Button variant="outline" onClick={onClose}>Cancel</Button><Button onClick={handleSubmit(onSubmit)} loading={loading}>{initial ? 'Save' : 'Create'}</Button></>}>
       <form className="space-y-3">
         <div><Label required>Name</Label><Input {...register('name', { required: true })} /></div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div><Label required>Phone</Label><Input {...register('phone', { required: true })} placeholder="+92 300 1234567" /></div>
           <div><Label>Email</Label><Input type="email" {...register('email')} /></div>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div><Label>CNIC</Label><Input {...register('cnic')} placeholder="00000-0000000-0" /></div>
           <div><Label>Source</Label><Input {...register('source')} placeholder="walk-in, facebook…" /></div>
         </div>

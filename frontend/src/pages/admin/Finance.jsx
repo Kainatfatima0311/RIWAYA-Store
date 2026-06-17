@@ -11,10 +11,13 @@ import {
 } from '@/api/peopleApi';
 import { PageHeader } from '@/components/admin/PageHeader';
 import { Card, CardContent } from '@/components/ui/Card';
+import { Reveal } from '@/components/ui/Reveal';
+import { CountUp } from '@/components/ui/CountUp';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { Select } from '@/components/ui/Input';
+import { useReducedMotion } from '@/lib/useReducedMotion';
 import { formatPrice, formatDate } from '@/lib/format';
 import {
   createReportDoc,
@@ -36,6 +39,7 @@ const formatBucket = (id) => {
 
 export default function Finance() {
   const [granularity, setGranularity] = useState('day');
+  const reduced = useReducedMotion();
 
   const { data: overview, isLoading: loadingOverview } = useFinanceOverviewQuery();
   const { data: timeSeries } = useRevenueTimeSeriesQuery({ granularity });
@@ -284,20 +288,23 @@ export default function Finance() {
         title="Finance"
         description="Revenue, expenses & profit overview"
         actions={
-          <Button onClick={downloadFullFinancePdf}>
-            <FileDown className="h-4 w-4 mr-2" /> Download full finance report (PDF)
+          <Button onClick={downloadFullFinancePdf} className="w-full sm:w-auto">
+            <FileDown className="h-4 w-4 mr-2" />
+            <span className="sm:hidden">Finance report (PDF)</span>
+            <span className="hidden sm:inline">Download full finance report (PDF)</span>
           </Button>
         }
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card><CardContent className="pt-6"><div className="flex items-start justify-between"><div><div className="text-xs text-muted-foreground">Net income</div><div className="text-2xl font-semibold text-primary">{formatPrice(o.revenue.netIncome)}</div></div><Wallet className="h-8 w-8 text-primary" /></div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="flex items-start justify-between"><div><div className="text-xs text-muted-foreground">Total expenses</div><div className="text-2xl font-semibold text-destructive">{formatPrice(o.expenses.totalExpenses)}</div></div><CreditCard className="h-8 w-8 text-destructive" /></div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="flex items-start justify-between"><div><div className="text-xs text-muted-foreground">Gross profit</div><div className={`text-2xl font-semibold ${o.summary.grossProfit >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>{formatPrice(o.summary.grossProfit)}</div></div>{o.summary.grossProfit >= 0 ? <TrendingUp className="h-8 w-8 text-emerald-600" /> : <TrendingDown className="h-8 w-8 text-destructive" />}</div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="flex items-start justify-between"><div><div className="text-xs text-muted-foreground">Margin</div><div className="text-2xl font-semibold">{o.summary.marginPercent}%</div></div></div></CardContent></Card>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 animate-fade-up">
+        <Card className="hover-lift-sm"><CardContent className="pt-6"><div className="flex items-start justify-between"><div><div className="text-xs text-muted-foreground">Net income</div><div className="text-xl sm:text-2xl font-semibold text-primary"><CountUp value={o.revenue.netIncome} format={formatPrice} /></div></div><Wallet className="h-8 w-8 text-primary" /></div></CardContent></Card>
+        <Card className="hover-lift-sm"><CardContent className="pt-6"><div className="flex items-start justify-between"><div><div className="text-xs text-muted-foreground">Total expenses</div><div className="text-xl sm:text-2xl font-semibold text-destructive"><CountUp value={o.expenses.totalExpenses} format={formatPrice} /></div></div><CreditCard className="h-8 w-8 text-destructive" /></div></CardContent></Card>
+        <Card className="hover-lift-sm"><CardContent className="pt-6"><div className="flex items-start justify-between"><div><div className="text-xs text-muted-foreground">Gross profit</div><div className={`text-xl sm:text-2xl font-semibold ${o.summary.grossProfit >= 0 ? 'text-emerald-600' : 'text-destructive'}`}><CountUp value={o.summary.grossProfit} format={formatPrice} /></div></div>{o.summary.grossProfit >= 0 ? <TrendingUp className="h-8 w-8 text-emerald-600" /> : <TrendingDown className="h-8 w-8 text-destructive" />}</div></CardContent></Card>
+        <Card className="hover-lift-sm"><CardContent className="pt-6"><div className="flex items-start justify-between"><div><div className="text-xs text-muted-foreground">Margin</div><div className="text-xl sm:text-2xl font-semibold"><CountUp value={o.summary.marginPercent} suffix="%" /></div></div></div></CardContent></Card>
       </div>
 
-      <Card className="mb-6">
+      <Reveal animation="fade-up" className="mb-6">
+       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
             <h2 className="font-semibold">Revenue over time</h2>
@@ -319,16 +326,17 @@ export default function Finance() {
                 <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(v) => `Rs ${(v / 1000).toFixed(0)}k`} />
                 <Tooltip formatter={(v) => formatPrice(v)} contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
-                <Line type="monotone" dataKey="amount" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="amount" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} isAnimationActive={!reduced} animationDuration={800} />
               </LineChart>
             </ResponsiveContainer>
           ) : (
             <p className="text-center text-muted-foreground py-10">No revenue data yet</p>
           )}
         </CardContent>
-      </Card>
+       </Card>
+      </Reveal>
 
-      <div className="grid lg:grid-cols-2 gap-4 mb-6">
+      <Reveal animation="fade-up" className="grid lg:grid-cols-2 gap-4 mb-6">
         <Card>
           <CardContent className="pt-6">
             <h2 className="font-semibold mb-3">Revenue breakdown</h2>
@@ -351,9 +359,9 @@ export default function Finance() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </Reveal>
 
-      <div className="grid lg:grid-cols-2 gap-4 mb-6">
+      <Reveal animation="fade-up" className="grid lg:grid-cols-2 gap-4 mb-6">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-3">
@@ -398,9 +406,9 @@ export default function Finance() {
             </ul>
           </CardContent>
         </Card>
-      </div>
+      </Reveal>
 
-      <div className="grid lg:grid-cols-2 gap-4">
+      <Reveal animation="fade-up" className="grid lg:grid-cols-2 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-3">
@@ -451,7 +459,7 @@ export default function Finance() {
             </ul>
           </CardContent>
         </Card>
-      </div>
+      </Reveal>
     </div>
   );
 }

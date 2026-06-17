@@ -23,11 +23,15 @@ const addressSchema = new mongoose.Schema(
 
 const customerSchema = new mongoose.Schema(
   {
-    // Optional link to a User account (null for walk-in customers without login)
+    // Optional link to a User account (absent for walk-in customers without login).
+    // NOTE: no `default: null` — a sparse unique index only skips documents where
+    // the field is ABSENT, not those explicitly set to null. Defaulting to null made
+    // every walk-in write `user: null`, so the 2nd walk-in collided on the unique
+    // index ("Duplicate value 'null' for field 'user'"). Leaving it unset keeps the
+    // field absent for walk-ins so the sparse unique index ignores them entirely.
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      default: null,
       sparse: true,
       unique: true,
     },

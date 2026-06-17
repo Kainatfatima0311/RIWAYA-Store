@@ -9,10 +9,13 @@ import {
   useStockValueReportQuery,
 } from '@/api/peopleApi';
 import { PageHeader } from '@/components/admin/PageHeader';
+import { Reveal, Stagger } from '@/components/ui/Reveal';
+import { CountUp } from '@/components/ui/CountUp';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Input';
+import { useReducedMotion } from '@/lib/useReducedMotion';
 import { formatPrice, formatDate, timeAgo } from '@/lib/format';
 import {
   createReportDoc,
@@ -35,6 +38,7 @@ const formatBucket = (id) => {
 
 export default function Reports() {
   const [groupBy, setGroupBy] = useState('day');
+  const reduced = useReducedMotion();
 
   const { data: sales } = useSalesReportQuery({ groupBy });
   const { data: topProducts } = useTopProductsQuery({ limit: 10 });
@@ -240,19 +244,20 @@ export default function Reports() {
         title="Reports"
         description="Sales, inventory, and activity insights — download as branded PDF"
         actions={
-          <Button onClick={downloadFullReportPdf}>
+          <Button onClick={downloadFullReportPdf} className="w-full sm:w-auto">
             <FileDown className="h-4 w-4 mr-2" /> Download full report (PDF)
           </Button>
         }
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Total SKUs</div><div className="text-2xl font-semibold">{sv.totalSKUs}</div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Units in stock</div><div className="text-2xl font-semibold">{sv.totalUnits}</div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Stock value</div><div className="text-2xl font-semibold text-primary">{formatPrice(sv.totalValue)}</div></CardContent></Card>
-      </div>
+      <Reveal animation="fade-up" className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <Card className="hover-lift-sm"><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Total SKUs</div><div className="text-2xl font-semibold"><CountUp value={sv.totalSKUs} /></div></CardContent></Card>
+        <Card className="hover-lift-sm"><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Units in stock</div><div className="text-2xl font-semibold"><CountUp value={sv.totalUnits} /></div></CardContent></Card>
+        <Card className="hover-lift-sm"><CardContent className="pt-6"><div className="text-xs text-muted-foreground">Stock value</div><div className="text-2xl font-semibold text-primary"><CountUp value={sv.totalValue} format={formatPrice} /></div></CardContent></Card>
+      </Reveal>
 
-      <Card className="mb-6">
+      <Reveal animation="fade-up" className="mb-6">
+       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
             <h2 className="font-semibold">Sales over time</h2>
@@ -274,16 +279,17 @@ export default function Reports() {
                 <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(v) => `Rs ${(v / 1000).toFixed(0)}k`} />
                 <Tooltip formatter={(v, n) => [n === 'revenue' ? formatPrice(v) : v, n]} contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
-                <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} isAnimationActive={!reduced} animationDuration={800} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
             <p className="text-center text-muted-foreground py-10">No sales yet</p>
           )}
         </CardContent>
-      </Card>
+       </Card>
+      </Reveal>
 
-      <div className="grid lg:grid-cols-2 gap-4 mb-6">
+      <Reveal animation="fade-up" className="grid lg:grid-cols-2 gap-4 mb-6">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-3">
@@ -294,10 +300,10 @@ export default function Reports() {
             </div>
             <ul className="space-y-2 text-sm">
               {(topProducts?.data || []).map((p) => (
-                <li key={p._id} className="flex justify-between border-b last:border-0 py-2">
+                <li key={p._id} className="group flex justify-between border-b last:border-0 py-2 hover-lift-sm rounded px-1 -mx-1">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-10 bg-muted rounded overflow-hidden flex-shrink-0">
-                      {p.image && <img src={p.image} alt="" className="w-full h-full object-cover" />}
+                      {p.image && <img src={p.image} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />}
                     </div>
                     <div>
                       <div className="font-medium line-clamp-1">{p.productName}</div>
@@ -334,9 +340,10 @@ export default function Reports() {
             </ul>
           </CardContent>
         </Card>
-      </div>
+      </Reveal>
 
-      <Card>
+      <Reveal animation="fade-up">
+       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold">Recent activity</h2>
@@ -346,7 +353,7 @@ export default function Reports() {
           </div>
           <ul className="space-y-2 text-sm">
             {(activity?.data || []).map((ev, i) => (
-              <li key={i} className="flex justify-between border-b last:border-0 py-2">
+              <Reveal as="li" animation="fade-up-sm" delay={Math.min(i * 40, 360)} key={i} className="flex justify-between border-b last:border-0 py-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="text-[10px] capitalize">{ev.kind.replace(/_/g, ' ')}</Badge>
@@ -354,12 +361,13 @@ export default function Reports() {
                   </div>
                 </div>
                 <span className="text-xs text-muted-foreground whitespace-nowrap ml-3">{timeAgo(ev.at)}</span>
-              </li>
+              </Reveal>
             ))}
             {!(activity?.data?.length) && <li className="text-muted-foreground">No activity yet</li>}
           </ul>
         </CardContent>
-      </Card>
+       </Card>
+      </Reveal>
     </div>
   );
 }

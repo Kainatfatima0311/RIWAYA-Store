@@ -60,19 +60,20 @@ export const peopleApi = baseApi.injectEndpoints({
     }),
     createEmployee: b.mutation({
       query: (body) => ({ url: '/employees', method: 'POST', body }),
-      invalidatesTags: ['Employee'],
+      // 'Report' too, so the dashboard "Active employees" tile refreshes on add/remove.
+      invalidatesTags: ['Employee', 'Report'],
     }),
     updateEmployee: b.mutation({
       query: ({ id, ...body }) => ({ url: `/employees/${id}`, method: 'PATCH', body }),
-      invalidatesTags: ['Employee'],
+      invalidatesTags: ['Employee', 'Report'],
     }),
     deleteEmployee: b.mutation({
       query: (id) => ({ url: `/employees/${id}`, method: 'DELETE' }),
-      invalidatesTags: ['Employee'],
+      invalidatesTags: ['Employee', 'Report'],
     }),
     setEmployeeStatus: b.mutation({
       query: ({ id, ...body }) => ({ url: `/employees/${id}/status`, method: 'PATCH', body }),
-      invalidatesTags: ['Employee'],
+      invalidatesTags: ['Employee', 'Report'],
     }),
     markAttendance: b.mutation({
       query: ({ id, ...body }) => ({ url: `/employees/${id}/attendance`, method: 'POST', body }),

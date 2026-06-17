@@ -1,7 +1,5 @@
 import { Router } from 'express';
-import path from 'path';
-import fs from 'fs';
-import { uploadSingleImage, uploadMultipleImages, UPLOADS_LOCAL_DIR } from '../../middleware/upload.middleware.js';
+import { uploadSingleImage, uploadMultipleImages, cloudinary } from '../../middleware/upload.middleware.js';
 import { protect } from '../../middleware/auth.middleware.js';
 import { isStaff } from '../../middleware/role.middleware.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
@@ -17,11 +15,9 @@ router.post(
   uploadSingleImage,
   asyncHandler(async (req, res) => {
     if (!req.file) throw ApiError.badRequest('No image file provided. Use field name "image".');
-    const category = (req.params.category || 'general').replace(/[^a-z0-9-]/gi, '');
-    const url = `/uploads/${category}/${req.file.filename}`;
     created(res, {
-      url,
-      publicId: `${category}/${req.file.filename}`,
+      url: req.file.path,        // Cloudinary secure URL
+      publicId: req.file.filename, // Cloudinary public_id (e.g. riwaya/products/abc123)
       filename: req.file.filename,
       size: req.file.size,
       mimetype: req.file.mimetype,
@@ -35,10 +31,9 @@ router.post(
   uploadMultipleImages,
   asyncHandler(async (req, res) => {
     if (!req.files?.length) throw ApiError.badRequest('No images provided. Use field name "images".');
-    const category = (req.params.category || 'general').replace(/[^a-z0-9-]/gi, '');
     const result = req.files.map((f) => ({
-      url: `/uploads/${category}/${f.filename}`,
-      publicId: `${category}/${f.filename}`,
+      url: f.path,
+      publicId: f.filename,
       filename: f.filename,
       size: f.size,
       mimetype: f.mimetype,
@@ -47,16 +42,16 @@ router.post(
   })
 );
 
-// Delete uploaded file by publicId (relative path inside /uploads)
+// Delete uploaded file by publicId (Cloudinary public_id)
 router.delete(
   '/:publicId(*)',
   asyncHandler(async (req, res) => {
     const publicId = req.params.publicId;
     if (!publicId || publicId.includes('..')) throw ApiError.badRequest('Invalid id');
-    const filePath = path.join(UPLOADS_LOCAL_DIR, publicId);
-    if (!filePath.startsWith(UPLOADS_LOCAL_DIR)) throw ApiError.badRequest('Invalid path');
-    if (!fs.existsSync(filePath)) throw ApiError.notFound('File not found');
-    fs.unlinkSync(filePath);
+    const result = await cloudinary.uploader.destroy(publicId);
+    if (result.result !== 'ok' && result.result !== 'not found') {
+      throw ApiError.badRequest(`Delete failed: ${result.result}`);
+    }
     ok(res, null, 'Deleted');
   })
 );

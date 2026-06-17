@@ -1,6 +1,7 @@
 import { Supplier } from './supplier.model.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { formatSequenceNoYear } from '../../utils/counter.js';
+import { escapeRegex } from '../../utils/escapeRegex.js';
 
 export const supplierService = {
   async create(payload, userId) {
@@ -22,13 +23,13 @@ export const supplierService = {
     const filter = {};
     if (type) filter.type = type;
     if (isActive !== undefined) filter.isActive = isActive === 'true';
-    if (city) filter['address.city'] = new RegExp(city, 'i');
+    if (city) filter['address.city'] = new RegExp(escapeRegex(city), 'i');
     if (search) {
       filter.$or = [
-        { name: new RegExp(search, 'i') },
-        { code: new RegExp(search, 'i') },
-        { contactPerson: new RegExp(search, 'i') },
-        { phone: new RegExp(search, 'i') },
+        { name: new RegExp(escapeRegex(search), 'i') },
+        { code: new RegExp(escapeRegex(search), 'i') },
+        { contactPerson: new RegExp(escapeRegex(search), 'i') },
+        { phone: new RegExp(escapeRegex(search), 'i') },
       ];
     }
 

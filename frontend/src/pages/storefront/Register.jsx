@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,6 +13,7 @@ import { Input } from '@/components/ui/Input';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Label, FormError } from '@/components/ui/Label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
+import { apiErrorMessage } from '@/lib/apiError';
 
 const schema = z.object({
   name: z.string().min(2, 'Name is too short'),
@@ -25,6 +27,7 @@ export default function Register() {
   const navigate = useNavigate();
   const isAuth = useAppSelector(selectIsAuthenticated);
   const [register_, { isLoading }] = useRegisterMutation();
+  const [shake, setShake] = useState(0); // bump to retrigger the error-nudge animation
   const { register, handleSubmit, formState: { errors } } = useForm({ resolver: zodResolver(schema) });
 
   if (isAuth) return <Navigate to="/" replace />;
@@ -38,14 +41,16 @@ export default function Register() {
       toast.success(`Welcome to RIWAYA, ${user.name.split(' ')[0]}!`);
       navigate('/');
     } catch (err) {
-      toast.error(err?.data?.message || 'Registration failed');
+      toast.error(apiErrorMessage(err, 'Registration failed'));
+      setShake((n) => n + 1); // nudge the card to signal the failed attempt
     }
   };
 
   return (
     <div className="min-h-[70vh] container flex items-center justify-center py-10">
-      <Card className="w-full max-w-md">
+      <Card key={shake} className={`w-full max-w-md ${shake ? 'animate-shake' : 'animate-fade-up'}`}>
         <CardHeader>
+          <div className="font-serif text-2xl text-primary text-center animate-fade-down">RIWAYA</div>
           <CardTitle>Create your account</CardTitle>
           <CardDescription>Join RIWAYA and discover premium fashion</CardDescription>
         </CardHeader>
@@ -73,7 +78,7 @@ export default function Register() {
             </div>
             <Button type="submit" loading={isLoading} className="w-full">Create account</Button>
             <p className="text-sm text-center text-muted-foreground">
-              Already a member? <Link to="/login" className="text-primary font-medium">Sign in</Link>
+              Already a member? <Link to="/login" className="text-primary font-medium transition-colors hover:text-primary-hover">Sign in</Link>
             </p>
           </form>
         </CardContent>

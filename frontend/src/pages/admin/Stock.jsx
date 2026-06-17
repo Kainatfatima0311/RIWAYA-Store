@@ -25,7 +25,10 @@ import { Input, Select, Textarea } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent } from '@/components/ui/Card';
+import { Stagger } from '@/components/ui/Reveal';
+import { CountUp } from '@/components/ui/CountUp';
 import { formatPrice } from '@/lib/format';
+import { apiErrorMessage } from '@/lib/apiError';
 
 export default function Stock() {
   const [filters, setFilters] = useState({ search: '', stockStatus: '' });
@@ -57,7 +60,7 @@ export default function Stock() {
       else await create(values).unwrap();
       toast.success(editing ? 'Updated' : 'Created');
       setModalOpen(false);
-    } catch (err) { toast.error(err?.data?.message || 'Failed'); }
+    } catch (err) { toast.error(apiErrorMessage(err, 'Failed')); }
   };
 
   const columns = [
@@ -74,12 +77,12 @@ export default function Stock() {
       key: 'actions', label: '', className: 'text-right',
       render: (r) => (
         <div className="flex items-center justify-end gap-1">
-          <button onClick={() => setOpModal({ type: 'receive', item: r })} title="Receive" className="p-1.5 hover:bg-accent/30 rounded"><ArrowDownToLine className="h-4 w-4 text-emerald-600" /></button>
-          <button onClick={() => setOpModal({ type: 'transfer', item: r })} title="Transfer" className="p-1.5 hover:bg-accent/30 rounded"><ArrowUpDown className="h-4 w-4 text-blue-600" /></button>
-          <button onClick={() => setOpModal({ type: 'adjust', item: r })} title="Adjust" className="p-1.5 hover:bg-accent/30 rounded"><Pencil className="h-4 w-4" /></button>
-          <button onClick={() => setOpModal({ type: 'writeOff', item: r })} title="Write off" className="p-1.5 hover:bg-destructive/10 text-destructive rounded"><MinusCircle className="h-4 w-4" /></button>
-          <button onClick={() => { setEditing(r); setModalOpen(true); }} className="p-1.5 hover:bg-accent/30 rounded"><Pencil className="h-4 w-4 text-muted-foreground" /></button>
-          <button onClick={() => setConfirmId(r._id)} className="p-1.5 hover:bg-destructive/10 text-destructive rounded"><Trash2 className="h-4 w-4" /></button>
+          <button onClick={() => setOpModal({ type: 'receive', item: r })} title="Receive" className="p-1.5 hover:bg-accent/30 rounded transition-colors"><ArrowDownToLine className="h-4 w-4 text-emerald-600" /></button>
+          <button onClick={() => setOpModal({ type: 'transfer', item: r })} title="Transfer" className="p-1.5 hover:bg-accent/30 rounded transition-colors"><ArrowUpDown className="h-4 w-4 text-blue-600" /></button>
+          <button onClick={() => setOpModal({ type: 'adjust', item: r })} title="Adjust" className="p-1.5 hover:bg-accent/30 rounded transition-colors"><Pencil className="h-4 w-4" /></button>
+          <button onClick={() => setOpModal({ type: 'writeOff', item: r })} title="Write off" className="p-1.5 hover:bg-destructive/10 text-destructive rounded transition-colors"><MinusCircle className="h-4 w-4" /></button>
+          <button onClick={() => { setEditing(r); setModalOpen(true); }} className="p-1.5 hover:bg-accent/30 rounded transition-colors"><Pencil className="h-4 w-4 text-muted-foreground" /></button>
+          <button onClick={() => setConfirmId(r._id)} className="p-1.5 hover:bg-destructive/10 text-destructive rounded transition-colors"><Trash2 className="h-4 w-4" /></button>
         </div>
       ),
     },
@@ -90,11 +93,11 @@ export default function Stock() {
       <PageHeader title="Stock Items" description="Inventory master list with per-rack quantities & low-stock alerts"
         actions={<Button onClick={() => { setEditing(null); setModalOpen(true); }}><Plus className="h-4 w-4 mr-1" /> New stock item</Button>} />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><div className="text-xs text-muted-foreground">Out of stock</div><div className="text-2xl font-semibold text-destructive">{lowCounts.out_of_stock}</div></div><AlertTriangle className="h-8 w-8 text-destructive" /></div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><div className="text-xs text-muted-foreground">Urgent (≤ reorder)</div><div className="text-2xl font-semibold text-amber-600">{lowCounts.urgent}</div></div><AlertTriangle className="h-8 w-8 text-amber-500" /></div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><div className="text-xs text-muted-foreground">Low</div><div className="text-2xl font-semibold text-amber-700">{lowCounts.low}</div></div><AlertTriangle className="h-8 w-8 text-amber-600" /></div></CardContent></Card>
-      </div>
+      <Stagger step={80} maxDelay={400} animation="fade-up-sm" className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <Card className="hover-lift-sm"><CardContent className="pt-6"><div className="flex items-center justify-between"><div><div className="text-xs text-muted-foreground">Out of stock</div><div className="text-2xl font-semibold text-destructive"><CountUp value={lowCounts.out_of_stock} /></div></div><AlertTriangle className="h-8 w-8 text-destructive" /></div></CardContent></Card>
+        <Card className="hover-lift-sm"><CardContent className="pt-6"><div className="flex items-center justify-between"><div><div className="text-xs text-muted-foreground">Urgent (≤ reorder)</div><div className="text-2xl font-semibold text-amber-600"><CountUp value={lowCounts.urgent} /></div></div><AlertTriangle className="h-8 w-8 text-amber-500" /></div></CardContent></Card>
+        <Card className="hover-lift-sm"><CardContent className="pt-6"><div className="flex items-center justify-between"><div><div className="text-xs text-muted-foreground">Low</div><div className="text-2xl font-semibold text-amber-700"><CountUp value={lowCounts.low} /></div></div><AlertTriangle className="h-8 w-8 text-amber-600" /></div></CardContent></Card>
+      </Stagger>
 
       <FilterBar search={filters.search} onSearch={(v) => { setFilters({ ...filters, search: v }); setPage(1); }}>
         <FilterField label="Stock status">
@@ -112,10 +115,10 @@ export default function Stock() {
 
       <StockItemFormModal open={modalOpen} onClose={() => setModalOpen(false)} initial={editing} suppliers={suppliers?.data || []} rackCategories={rackCats?.data || []} onSubmit={handleSave} loading={creating || updating} />
 
-      <StockOpModal op={opModal} onClose={() => setOpModal(null)} racks={racks?.data || []} onReceive={async (v) => { try { await receive(v).unwrap(); toast.success('Stock received'); setOpModal(null); } catch (e) { toast.error(e?.data?.message || 'Failed'); } }} onTransfer={async (v) => { try { await transfer(v).unwrap(); toast.success('Stock transferred'); setOpModal(null); } catch (e) { toast.error(e?.data?.message || 'Failed'); } }} onAdjust={async (v) => { try { await adjust(v).unwrap(); toast.success('Adjusted'); setOpModal(null); } catch (e) { toast.error(e?.data?.message || 'Failed'); } }} onWriteOff={async (v) => { try { await writeOff(v).unwrap(); toast.success('Written off'); setOpModal(null); } catch (e) { toast.error(e?.data?.message || 'Failed'); } }} />
+      <StockOpModal op={opModal} onClose={() => setOpModal(null)} racks={racks?.data || []} onReceive={async (v) => { try { await receive(v).unwrap(); toast.success('Stock received'); setOpModal(null); } catch (e) { toast.error(apiErrorMessage(e, 'Failed')); } }} onTransfer={async (v) => { try { await transfer(v).unwrap(); toast.success('Stock transferred'); setOpModal(null); } catch (e) { toast.error(apiErrorMessage(e, 'Failed')); } }} onAdjust={async (v) => { try { await adjust(v).unwrap(); toast.success('Adjusted'); setOpModal(null); } catch (e) { toast.error(apiErrorMessage(e, 'Failed')); } }} onWriteOff={async (v) => { try { await writeOff(v).unwrap(); toast.success('Written off'); setOpModal(null); } catch (e) { toast.error(apiErrorMessage(e, 'Failed')); } }} />
 
       <ConfirmDialog open={!!confirmId} onClose={() => setConfirmId(null)} title="Delete stock item?"
-        onConfirm={async () => { try { await remove(confirmId).unwrap(); toast.success('Deleted'); setConfirmId(null); } catch (err) { toast.error(err?.data?.message || 'Failed'); } }} loading={deleting} />
+        onConfirm={async () => { try { await remove(confirmId).unwrap(); toast.success('Deleted'); setConfirmId(null); } catch (err) { toast.error(apiErrorMessage(err, 'Failed')); } }} loading={deleting} />
     </div>
   );
 }
@@ -134,8 +137,8 @@ function StockItemFormModal({ open, onClose, initial, suppliers, rackCategories,
   return (
     <Modal open={open} onClose={onClose} title={initial ? 'Edit stock item' : 'New stock item'} size="lg"
       footer={<><Button variant="outline" onClick={onClose}>Cancel</Button><Button onClick={handleSubmit((v) => onSubmit({ ...v, rackCategory: v.rackCategory || undefined, supplier: v.supplier || undefined, unitCost: Number(v.unitCost), minStockLevel: Number(v.minStockLevel), reorderLevel: Number(v.reorderLevel) }))} loading={loading}>{initial ? 'Save' : 'Create'}</Button></>}>
-      <form className="grid grid-cols-2 gap-3">
-        <div className="col-span-2"><Label required>Name</Label><Input {...register('name', { required: true })} /></div>
+      <form className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="sm:col-span-2"><Label required>Name</Label><Input {...register('name', { required: true })} /></div>
         <div><Label>SKU (auto if blank)</Label><Input {...register('sku')} placeholder="SKU-00001" /></div>
         <div><Label>Unit</Label><Select {...register('unit')}>{['pcs','mtr','kg','dozens','suits'].map((u) => <option key={u} value={u}>{u}</option>)}</Select></div>
         <div><Label>Rack category</Label><Select {...register('rackCategory')}><option value="">—</option>{rackCategories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}</Select></div>
@@ -143,7 +146,7 @@ function StockItemFormModal({ open, onClose, initial, suppliers, rackCategories,
         <div><Label>Unit cost (Rs)</Label><Input type="number" {...register('unitCost')} /></div>
         <div><Label>Min stock level</Label><Input type="number" {...register('minStockLevel')} /></div>
         <div><Label>Reorder level</Label><Input type="number" {...register('reorderLevel')} /></div>
-        <div className="col-span-2"><Label>Description</Label><Textarea rows={2} {...register('description')} /></div>
+        <div className="sm:col-span-2"><Label>Description</Label><Textarea rows={2} {...register('description')} /></div>
       </form>
     </Modal>
   );
